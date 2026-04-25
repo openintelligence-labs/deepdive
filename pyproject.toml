@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deepdive"
+version = "0.2.0"
+description = "AI deep research agent — open source alternative to Perplexity Pro. Local-first via Ollama."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Open Intelligence Labs contributors" }]
+requires-python = ">=3.12"
+keywords = ["ai", "research", "agent", "ollama", "local-first", "perplexity"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "agentic-kit>=0.3.0",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "httpx>=0.27",
+    "selectolax>=0.3.21",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "structlog>=24.1",
+    "sse-starlette>=2.0",
+    "ddgs>=7.0",
+    "click>=8.1",
+    "rich>=13.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+]
+
+[project.scripts]
+deepdive = "deepdive.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/openintelligence-labs/deepdive"
+Repository = "https://github.com/openintelligence-labs/deepdive"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "A", "C4", "SIM"]
