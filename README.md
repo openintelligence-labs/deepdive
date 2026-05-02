@@ -1,104 +1,143 @@
 # DeepDive
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-![CI](https://github.com/openintelligence-labs/deepdive/actions/workflows/ci.yml/badge.svg)
+[![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
+[![Tests](https://img.shields.io/badge/tests-116%20passing-brightgreen)]()
 [![Powered by agentic-kit](https://img.shields.io/badge/powered%20by-agentic--kit-7c3aed)](https://github.com/openintelligence-labs/agentic-kit)
 
-> **Open source alternative to Perplexity Pro ($200/yr).** A deep research agent that autonomously searches 30+ sources, cross-references claims, detects contradictions, and produces a structured report with inline citations. Runs 100% locally via Ollama.
-
-⭐ **Star us on GitHub** if you've ever paid for research you could've done with a local model.
-
-## Why this exists
-
-ChatGPT Deep Research and Perplexity Pro do real multi-step research — but they're closed-source, cloud-only, and charge hundreds of dollars a year. Perplexica and other open alternatives are just search wrappers. DeepDive is the actual agent: it plans queries, scrapes the web, extracts claims, cross-references across sources, and writes a cited report. All local, all free.
-
-## Quick start
+A local-first AI research agent. Asks a question, searches the web (or your own documents), reads the sources, and writes a cited report. Every claim is checked against a verbatim excerpt from its source — claims the validator can't verify are dropped.
 
 ```bash
-# 1. Start Ollama + SearxNG + DeepDive
-docker compose up -d
-
-# 2. Pull a model
+pip install deepdive
 ollama pull llama3.2
-
-# 3. From the terminal — streamed to a Markdown file
-deepdive research "What caused the 2008 financial crisis?" -o crisis.md
-
-# 4. Or hit the API (SSE for live progress)
-curl -N -X POST http://localhost:8000/api/research \
-  -H "Content-Type: application/json" \
-  -d '{"question": "Compare quantum computing approaches for drug discovery"}'
-
-# 5. Or ask for just the Markdown report
-curl -X POST http://localhost:8000/api/research/markdown \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What are the main climate feedback loops?"}'
+deepdive research "When did Apollo 11 land on the Moon?" -o report.md
 ```
+
+No API key required. Runs on Ollama by default.
+
+---
 
 ## Features
 
-| Feature | What it does |
-|---|---|
-| Autonomous search | Generates 5 diverse queries per question, runs them via SearxNG |
-| Web scraping | Fetches top results in parallel with timeouts and retries |
-| Claim extraction | Pulls verifiable facts from each page, with source attribution |
-| Cross-referencing | Merges duplicate claims, boosts confidence when multiple sources agree |
-| Structured reports | Background / Findings / Contradictions sections with inline citations |
-| Real-time progress | Server-sent events stream every step to the UI |
-| 100% local | Ollama default, no API key required |
+### Span-grounded citations
 
-## How it works
+The claim extractor returns each claim alongside the verbatim excerpt that supports it. A post-extraction validator re-checks every excerpt against the fetched source page via substring match. Claims that don't ground get dropped from the report.
 
-```mermaid
-graph LR
-    Q[User question] --> QG[Query generation]
-    QG --> SX[SearxNG search]
-    SX --> SC[Scraper]
-    SC --> CE[Claim extraction]
-    CE --> XR[Cross-reference]
-    XR --> RB[Report builder]
-    RB --> R[Cited report]
+The Markdown report ends with an Evidence appendix listing every claim and its verbatim source excerpt:
+
+```markdown
+**1.** Apollo 11 landed on the Moon on July 20, 1969.
+   - [✓] [Apollo 11 - Wikipedia](https://en.wikipedia.org/wiki/Apollo_11)
+     > Apollo 11 (July 16-24, 1969) was the American spaceflight that
+     > first landed humans on the Moon, and the fifth crewed mission of
+     > NASA's Apollo program.
 ```
 
-## Configuration
+### Trace and replay
 
-All settings read from env with prefix `DEEPDIVE_`:
+Every research run can record a trace of every LLM call, search, and scrape. Replay reconstructs the report offline, byte-for-byte.
 
 ```bash
-export DEEPDIVE_LLM_MODEL=llama3.2
-export DEEPDIVE_LLM_BASE_URL=http://localhost:11434
-export DEEPDIVE_SEARXNG_BASE_URL=http://localhost:8888
-export DEEPDIVE_QUERIES_PER_QUESTION=5
-export DEEPDIVE_RESULTS_PER_QUERY=5
-export DEEPDIVE_MAX_PAGES_PER_RESEARCH=30
+deepdive research "..." -o report.md         # auto-records report.md.trace.jsonl
+deepdive replay report.md.trace.jsonl        # produces an identical report, no network
+deepdive trace verify report.md.trace.jsonl  # re-validates every excerpt
+deepdive inspect report.md.trace.jsonl       # event counts
 ```
 
-## Roadmap
+### Source restriction
 
-- [x] Search pipeline with SearxNG + DuckDuckGo
-- [x] Parallel scraping with selectolax
-- [x] Claim extraction + cross-referencing (provider-agnostic via `LLM.extract`)
-- [x] Structured report with citations
-- [x] SSE streaming API + Markdown endpoint
-- [x] Rich CLI with live progress + Markdown export (`--output`)
-- [ ] Next.js frontend with real-time progress UI
-- [ ] PDF export
-- [ ] Playwright fallback for JS-heavy sites
-- [ ] Semantic caching of page content (via agentic-kit `SqliteVecCache`)
+Restrict search to your own allow/block lists of hostnames. Subdomains match; wildcards like `*.gov` are supported.
 
-## Contributing
+```bash
+deepdive research "..." --allow-domains arxiv.org,nih.gov
+deepdive research "..." --block-domains medium.com,*.substack.com
+```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Join us on [Discord](https://discord.gg/openintelligence-labs).
+### Local corpus and offline mode
 
-## Part of the Open Intelligence Labs ecosystem
+Index your own documents into a sqlite-vec database, then research them with no outbound network calls.
 
-DeepDive is part of the [Open Intelligence Labs](https://github.com/openintelligence-labs) ecosystem — open source AI tools that replace expensive SaaS.
+```bash
+deepdive index ~/Documents/papers -o ~/.local/share/deepdive/index.db
+deepdive research "..." --corpus ~/.local/share/deepdive/index.db --offline
+```
 
-- [agentic-kit](https://github.com/openintelligence-labs/agentic-kit) — the shared SDK that powers DeepDive's LLM calls
-- [MeetMind](https://github.com/openintelligence-labs/meetmind) — local meeting assistant (replaces Otter.ai)
-- [SecondBrain](https://github.com/openintelligence-labs/secondbrain) — personal AI memory (replaces Rewind.ai)
-- [TokenMiser](https://github.com/openintelligence-labs/tokenmiser) — smart LLM router that cuts agent costs 10x
+In `--offline` mode the LLM endpoint must be loopback (Ollama is fine; cloud APIs raise) and non-loopback URLs are dropped at the scraper level.
 
-## License
+### Multi-format export
 
-MIT
+```bash
+deepdive research "..." -o report.md                      # markdown (default)
+deepdive research "..." -o paper.tex --export latex       # +references.bib
+deepdive research "..." -o data.json --export json
+deepdive research "..." -o note.md --export obsidian      # YAML + [[wikilinks]]
+deepdive research "..." -o page.md --export notion
+deepdive research "..." -o refs.bib --export bibtex
+```
+
+### Use as an MCP server
+
+Expose DeepDive's `research` tool to any MCP-compatible client.
+
+```bash
+deepdive serve-mcp                         # stdio
+deepdive serve-mcp --http --port 8765      # Streamable HTTP
+```
+
+---
+
+## Install
+
+```bash
+pip install deepdive[all]      # everything: MCP server, corpus indexing
+pip install deepdive[mcp]      # MCP server only
+pip install deepdive[corpus]   # local corpus indexing only
+
+ollama pull llama3.2           # tool-capable LLM (default)
+ollama pull nomic-embed-text   # embeddings (only needed for --corpus)
+```
+
+---
+
+## Architecture
+
+DeepDive is built on [agentic-kit](https://github.com/openintelligence-labs/agentic-kit). The pipeline:
+
+```
+question
+   │
+   ▼  query generation              (LLM)
+search backend                       (DuckDuckGo / SearxNG / local corpus)
+   │                                 │  optional: --allow / --block filter
+   ▼  scraper                        (web / corpus / offline)
+claim extractor                      (LLM, returns excerpts)
+   │
+   ▼  span-grounding validator       (drops claims without verbatim excerpts)
+cross-reference
+   │
+   ▼  report builder                 (LLM)
+Markdown / LaTeX / BibTeX / JSON / Obsidian / Notion
+```
+
+Every external call is wrapped in optional recorders, which is how trace and replay work.
+
+---
+
+## What's not in scope
+
+- Hosted SaaS or paid tier — DeepDive is open-source and runs on your hardware
+- Multi-modal output (charts, infographics)
+- Conversational follow-up on a single report — single-shot research only
+- Browser automation
+- Code execution as a research step
+
+---
+
+## Status
+
+- **Version:** 0.3.0 (in development)
+- **License:** MIT
+- **Python:** 3.12+
+- **Framework:** [agentic-kit ≥ 0.5.0](https://github.com/openintelligence-labs/agentic-kit)
+
+Part of [Open Intelligence Labs](https://github.com/openintelligence-labs).

@@ -29,6 +29,14 @@ class Citation(BaseModel):
     url: HttpUrl
     title: str
     quote: str | None = None
+    # Span-grounded: where in the source page the supporting text lives.
+    # ``excerpt`` is the verbatim substring; ``offset_start``/``offset_end``
+    # are character indices into the fetched page body. ``grounded`` is
+    # True iff the validator confirmed excerpt == body[start:end].
+    excerpt: str | None = None
+    offset_start: int | None = None
+    offset_end: int | None = None
+    grounded: bool = False
 
 
 class Claim(BaseModel):
@@ -36,6 +44,11 @@ class Claim(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0, default=0.5)
     citations: list[Citation] = Field(default_factory=list)
     contradicts: list[str] = Field(default_factory=list)
+
+    @property
+    def grounded(self) -> bool:
+        """A claim is grounded iff at least one of its citations is grounded."""
+        return any(c.grounded for c in self.citations)
 
 
 class ReportSection(BaseModel):

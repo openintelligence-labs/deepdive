@@ -1,11 +1,5 @@
-# architecture docs (uncooked — kept local until polished)
+# Internal working notes — kept local until polished
 docs/
-
-# Claude Code config (local-only)
-.claude/
-
-# CLAUDE.md (uncooked — kept local until polished)
-CLAUDE.md
 
 __pycache__/
 *.py[cod]
@@ -34,4 +28,3 @@ htmlcov/
 *.sqlite
 *.db
 *.duckdb
-.claude/settings.local.json

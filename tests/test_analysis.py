@@ -49,6 +49,7 @@ async def test_claim_extractor_parses_structured_output():
     extractor = ClaimExtractor(
         llm=LLM(provider=provider, model="test", tracing=False),
         max_claims=5,
+        ground=False,
     )
     page = ScrapedPage(url="https://example.com/", title="t", text="some content")
     claims = await extractor.extract(page)
@@ -70,7 +71,10 @@ async def test_claim_extractor_returns_empty_on_parse_failure():
     # extract() calls LLM.extract internally which may retry, then falls back
     # to LLM.complete() once more. Four slots is plenty.
     provider = ScriptedProvider(["garbage"] * 6)
-    extractor = ClaimExtractor(llm=LLM(provider=provider, model="test", tracing=False))
+    extractor = ClaimExtractor(
+        llm=LLM(provider=provider, model="test", tracing=False),
+        ground=False,
+    )
     page = ScrapedPage(url="https://example.com/", title="t", text="real text")
     assert await extractor.extract(page) == []
 
@@ -87,7 +91,10 @@ async def test_claim_extractor_falls_back_to_numbered_list():
         "- Graydon Hoare started it at Mozilla.\n"
     )
     provider = ScriptedProvider(["not json", "still not json", numbered])
-    extractor = ClaimExtractor(llm=LLM(provider=provider, model="test", tracing=False))
+    extractor = ClaimExtractor(
+        llm=LLM(provider=provider, model="test", tracing=False),
+        ground=False,
+    )
     page = ScrapedPage(url="https://example.com/", title="t", text="real text")
     claims = await extractor.extract(page)
     texts = [c.text for c in claims]

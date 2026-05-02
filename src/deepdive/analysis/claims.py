@@ -4,6 +4,11 @@ import structlog
 from agentic_kit import LLM
 from pydantic import BaseModel, Field
 
+from deepdive.analysis.grounding import (
+    GROUNDING_INSTRUCTIONS,
+    _GroundedClaimList,
+    ground_claim,
+)
 from deepdive.models import Citation, Claim, ScrapedPage
 
 log = structlog.get_logger(__name__)
@@ -24,13 +29,63 @@ def _truncate(text: str, max_chars: int = 4000) -> str:
 
 
 class ClaimExtractor:
-    def __init__(self, llm: LLM | None = None, max_claims: int = 8) -> None:
+    """Extract verifiable claims from a scraped page.
+
+    By default uses span-grounded extraction: every claim must include a
+    verbatim excerpt from the source, validated by substring match. This is
+    the citation-honesty wedge — see docs/DIFFERENTIATION.md.
+
+    Set ``ground=False`` to fall back to the v0.2 plain extraction (claims
+    without source excerpts). Backward-compatible for legacy callers and tests.
+    """
+
+    def __init__(
+        self,
+        llm: LLM | None = None,
+        max_claims: int = 8,
+        *,
+        ground: bool = True,
+    ) -> None:
         self.llm = llm or LLM()
         self.max_claims = max_claims
+        self.ground = ground
 
     async def extract(self, page: ScrapedPage) -> list[Claim]:
         if not page.text.strip():
             return []
+        if self.ground:
+            grounded = await self._extract_grounded(page)
+            if grounded:
+                return grounded
+            # Fall through to legacy path if grounded extraction returned nothing
+            # — better to hand a user ungrounded claims that the validator can
+            # later flag than to drop the page silently.
+            log.info("grounded_extract_empty_falling_back", url=str(page.url))
+        return await self._extract_legacy(page)
+
+    async def _extract_grounded(self, page: ScrapedPage) -> list[Claim]:
+        prompt = GROUNDING_INSTRUCTIONS.format(
+            text=_truncate(page.text), max_claims=self.max_claims
+        )
+        try:
+            result = await self.llm.extract(prompt, _GroundedClaimList, temperature=0.2)
+        except Exception as exc:
+            log.info("grounded_extract_schema_failed", url=str(page.url), error=str(exc))
+            return []
+        out: list[Claim] = []
+        for gc in result.claims[: self.max_claims]:
+            if not gc.text or not gc.text.strip():
+                continue
+            citation = Citation(
+                url=page.url,
+                title=page.title,
+                excerpt=gc.excerpt or None,
+            )
+            claim = Claim(text=gc.text, citations=[citation], confidence=0.6)
+            out.append(ground_claim(page.text, claim))
+        return out
+
+    async def _extract_legacy(self, page: ScrapedPage) -> list[Claim]:
         prompt = _INSTRUCTIONS.format(text=_truncate(page.text), max_claims=self.max_claims)
         raw: list[str] = []
         schema_failed = False

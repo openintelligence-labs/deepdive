@@ -91,6 +91,7 @@ async def test_pipeline_emits_full_event_sequence():
         llm=llm,
         search_client=fake_search,  # type: ignore[arg-type]
         scraper=fake_scraper,  # type: ignore[arg-type]
+        ground=False,
     )
 
     events = [e async for e in pipeline.run("What is X?")]
@@ -154,6 +155,7 @@ async def test_pipeline_produces_graceful_report_when_no_claims():
         llm=llm,
         search_client=FakeSearch(search_results),  # type: ignore[arg-type]
         scraper=FakeScraper(pages),  # type: ignore[arg-type]
+        ground=False,
     )
     events = [e async for e in pipeline.run("Q?")]
     done = next(e for e in events if e.type == "done")
@@ -215,6 +217,7 @@ async def test_report_builder_populates_total_cost():
         llm=llm,
         search_client=FakeSearch(search_results),  # type: ignore[arg-type]
         scraper=FakeScraper(pages),  # type: ignore[arg-type]
+        ground=False,
     )
     events = [e async for e in pipeline.run("Q?")]
     done = next(e for e in events if e.type == "done")
