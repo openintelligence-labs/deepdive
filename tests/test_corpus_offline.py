@@ -51,7 +51,7 @@ def test_chunker_text_equals_source_slice():
     chunks = chunk_text(text, max_chars=200, overlap_chars=40)
     assert len(chunks) > 1, "test needs multi-chunk output to exercise overlap"
     for c in chunks:
-        assert text[c.offset_start:c.offset_end] == c.text
+        assert text[c.offset_start : c.offset_end] == c.text
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -59,22 +59,25 @@ def test_chunker_text_equals_source_slice():
 # ──────────────────────────────────────────────────────────────────────
 
 
-@pytest.mark.parametrize("url,expected", [
-    ("http://localhost:11434/api/chat", True),
-    ("http://127.0.0.1:8000/", True),
-    ("http://127.5.5.5/", True),
-    ("http://[::1]/", True),
-    ("http://[0:0:0:0:0:0:0:1]/", True),  # IPv6 long form
-    ("https://api.openai.com/v1/chat", False),
-    ("https://arxiv.org/abs/x", False),
-    ("not-a-url", False),
-    # SSRF guard regressions: prefix-spoofers must NOT pass.
-    ("http://127.evil.com/", False),
-    ("http://127.0.0.1.evil.com/", False),
-    ("http://localhost.evil.com/", False),
-    # 0.0.0.0 is a wildcard bind, not a loopback — must be rejected.
-    ("http://0.0.0.0/", False),
-])
+@pytest.mark.parametrize(
+    "url,expected",
+    [
+        ("http://localhost:11434/api/chat", True),
+        ("http://127.0.0.1:8000/", True),
+        ("http://127.5.5.5/", True),
+        ("http://[::1]/", True),
+        ("http://[0:0:0:0:0:0:0:1]/", True),  # IPv6 long form
+        ("https://api.openai.com/v1/chat", False),
+        ("https://arxiv.org/abs/x", False),
+        ("not-a-url", False),
+        # SSRF guard regressions: prefix-spoofers must NOT pass.
+        ("http://127.evil.com/", False),
+        ("http://127.0.0.1.evil.com/", False),
+        ("http://localhost.evil.com/", False),
+        # 0.0.0.0 is a wildcard bind, not a loopback — must be rejected.
+        ("http://0.0.0.0/", False),
+    ],
+)
 def test_is_loopback(url, expected):
     assert is_loopback(url) is expected
 

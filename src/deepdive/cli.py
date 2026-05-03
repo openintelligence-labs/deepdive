@@ -40,9 +40,7 @@ async def _run_research(
             "[dim]Pass --force to overwrite, or pick a different -o path.[/]"
         )
         sys.exit(2)
-    pipeline = ResearchPipeline(
-        config=config, trace_path=trace_path, source_filter=source_filter
-    )
+    pipeline = ResearchPipeline(config=config, trace_path=trace_path, source_filter=source_filter)
     report: ResearchReport | None = None
 
     with Live(console=console, refresh_per_second=4) as live:
@@ -223,9 +221,23 @@ def main():
     help="Overwrite the -o output file if it already exists.",
 )
 def research(
-    question, model, backend, queries, output, debug, log_format,
-    ground, include_ungrounded, trace, allow_domains, block_domains,
-    export_format, offline, corpus, plan_only, force,
+    question,
+    model,
+    backend,
+    queries,
+    output,
+    debug,
+    log_format,
+    ground,
+    include_ungrounded,
+    trace,
+    allow_domains,
+    block_domains,
+    export_format,
+    offline,
+    corpus,
+    plan_only,
+    force,
 ):
     """Research a question. Searches the web, analyzes sources, writes a cited report.
 
@@ -258,8 +270,14 @@ def research(
     try:
         asyncio.run(
             _run_research(
-                question, config, output, trace_path, source_filter,
-                export_format, plan_only, force,
+                question,
+                config,
+                output,
+                trace_path,
+                source_filter,
+                export_format,
+                plan_only,
+                force,
             )
         )
     except KeyboardInterrupt:
@@ -293,16 +311,12 @@ async def _run_index(root: Path, output: Path, embed_model: str) -> None:
     async with CorpusIndex(output, embed_model=embed_model) as index:
         if root.is_file():
             added = await index.index_file(root)
-            console.print(
-                f"  [green]{root}[/] [dim]→[/] {added} chunks"
-            )
+            console.print(f"  [green]{root}[/] [dim]→[/] {added} chunks")
         else:
             async for path, added in index.index_directory(root):
                 marker = "✓" if added > 0 else "↺"
                 rel = path.relative_to(root.resolve())
-                console.print(
-                    f"  [green]{marker}[/] {rel} [dim]→[/] {added} chunks"
-                )
+                console.print(f"  [green]{marker}[/] {rel} [dim]→[/] {added} chunks")
         stats = index.stats()
     console.print(
         f"\n[bold]Index:[/] {output}  [dim]({stats['documents']} documents, "
@@ -313,7 +327,8 @@ async def _run_index(root: Path, output: Path, embed_model: str) -> None:
 @main.command(name="index")
 @click.argument("root", type=click.Path(exists=True, path_type=Path))
 @click.option(
-    "--output", "-o",
+    "--output",
+    "-o",
     type=click.Path(dir_okay=False, path_type=Path),
     required=True,
     help="Path to write the sqlite-vec index (e.g. ~/.local/share/deepdive/index.db).",
@@ -403,7 +418,8 @@ async def _run_replay(trace_path: Path, output: Path | None, force: bool = False
 @main.command()
 @click.argument("trace_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option(
-    "--output", "-o",
+    "--output",
+    "-o",
     type=click.Path(dir_okay=False, path_type=Path),
     default=None,
     help="Write replayed Markdown report here.",

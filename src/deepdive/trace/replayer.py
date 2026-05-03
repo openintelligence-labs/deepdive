@@ -70,9 +70,7 @@ class _TraceIndex:
                 elif t == "scrape":
                     key = obj["key"]
                     page = (
-                        ScrapedPage.model_validate(obj["page"])
-                        if obj["page"] is not None
-                        else None
+                        ScrapedPage.model_validate(obj["page"]) if obj["page"] is not None else None
                     )
                     self.scrapes.setdefault(key, []).append(page)
                 elif t == "event":

@@ -14,12 +14,20 @@ from deepdive.report.exporters.latex import cite_key, latex_escape, to_latex
 
 def _fake_report() -> ResearchReport:
     cit = Citation(
-        url="https://arxiv.org/abs/2305.10403", title="Example arxiv paper",
-        excerpt="An example excerpt.", offset_start=0, offset_end=18, grounded=True,
+        url="https://arxiv.org/abs/2305.10403",
+        title="Example arxiv paper",
+        excerpt="An example excerpt.",
+        offset_start=0,
+        offset_end=18,
+        grounded=True,
     )
     cit2 = Citation(
-        url="https://www.nature.com/articles/x", title="Nature article",
-        excerpt="Another excerpt.", offset_start=0, offset_end=16, grounded=True,
+        url="https://www.nature.com/articles/x",
+        title="Nature article",
+        excerpt="Another excerpt.",
+        offset_start=0,
+        offset_end=16,
+        grounded=True,
     )
     section = ReportSection(
         heading="Background",
@@ -47,9 +55,7 @@ def _fake_report() -> ResearchReport:
 
 
 def test_six_formats_are_registered():
-    assert set(available_formats()) == {
-        "markdown", "latex", "bibtex", "json", "obsidian", "notion"
-    }
+    assert set(available_formats()) == {"markdown", "latex", "bibtex", "json", "obsidian", "notion"}
 
 
 def test_export_unknown_format_raises():
@@ -137,11 +143,9 @@ def test_bibtex_includes_url_and_year():
 def test_bibtex_dedupes_identical_sources():
     cit = Citation(url="https://arxiv.org/abs/x", title="X")
     report = ResearchReport(
-        question="Q", summary="s",
-        sections=[
-            ReportSection(heading="h", body="b",
-                          claims=[Claim(text="c", citations=[cit])])
-        ],
+        question="Q",
+        summary="s",
+        sections=[ReportSection(heading="h", body="b", claims=[Claim(text="c", citations=[cit])])],
         sources=[cit, cit],  # duplicated on purpose
     )
     out = EXPORTERS["bibtex"](report)

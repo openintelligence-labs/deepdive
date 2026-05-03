@@ -15,19 +15,22 @@ from deepdive.search.filters import (
 # ──────────────────────────────────────────────────────────────────────
 
 
-@pytest.mark.parametrize("entry,host,expected", [
-    ("arxiv.org", "arxiv.org", True),
-    ("arxiv.org", "www.arxiv.org", True),       # subdomain match
-    ("arxiv.org", "arxiv.org.evil.com", False), # no fake-suffix attack
-    ("ncbi.nlm.nih.gov", "pubmed.ncbi.nlm.nih.gov", True),
-    ("*.gov", "nih.gov", True),
-    ("*.gov", "www.nih.gov", True),
-    ("*.gov", "example.com", False),
-    ("gov", "nih.gov", True),                   # bare TLD = same as *.gov
-    (".gov", "nih.gov", True),                  # leading dot OK
-    ("nature.com", "scientificamerican.com", False),
-    ("medium.com", "stackoverflow.com", False),
-])
+@pytest.mark.parametrize(
+    "entry,host,expected",
+    [
+        ("arxiv.org", "arxiv.org", True),
+        ("arxiv.org", "www.arxiv.org", True),  # subdomain match
+        ("arxiv.org", "arxiv.org.evil.com", False),  # no fake-suffix attack
+        ("ncbi.nlm.nih.gov", "pubmed.ncbi.nlm.nih.gov", True),
+        ("*.gov", "nih.gov", True),
+        ("*.gov", "www.nih.gov", True),
+        ("*.gov", "example.com", False),
+        ("gov", "nih.gov", True),  # bare TLD = same as *.gov
+        (".gov", "nih.gov", True),  # leading dot OK
+        ("nature.com", "scientificamerican.com", False),
+        ("medium.com", "stackoverflow.com", False),
+    ],
+)
 def test_hostname_match(entry, host, expected):
     f = SourceFilter(allow=(entry,))
     assert f.keep(f"https://{host}/path") is expected
@@ -71,11 +74,13 @@ class FakeSearch:
 
 @pytest.mark.asyncio
 async def test_filtering_search_drops_disallowed_results():
-    inner = FakeSearch([
-        SearchResult(url="https://arxiv.org/a", title="a", snippet="..."),
-        SearchResult(url="https://medium.com/b", title="b", snippet="..."),
-        SearchResult(url="https://nih.gov/c", title="c", snippet="..."),
-    ])
+    inner = FakeSearch(
+        [
+            SearchResult(url="https://arxiv.org/a", title="a", snippet="..."),
+            SearchResult(url="https://medium.com/b", title="b", snippet="..."),
+            SearchResult(url="https://nih.gov/c", title="c", snippet="..."),
+        ]
+    )
     f = SourceFilter(allow=("arxiv.org", "nih.gov"))
     fs = FilteringSearch(inner, f)
     out = await fs.search("q", max_results=5)
@@ -91,12 +96,8 @@ async def test_filtering_search_oversamples_to_compensate():
     # Interleave so a small max_results=3 fetch doesn't hit only-mediums first.
     interleaved: list[SearchResult] = []
     for i in range(15):
-        interleaved.append(
-            SearchResult(url=f"https://medium.com/{i}", title="x", snippet="x")
-        )
-        interleaved.append(
-            SearchResult(url=f"https://arxiv.org/{i}", title="x", snippet="x")
-        )
+        interleaved.append(SearchResult(url=f"https://medium.com/{i}", title="x", snippet="x"))
+        interleaved.append(SearchResult(url=f"https://arxiv.org/{i}", title="x", snippet="x"))
     inner = FakeSearch(interleaved)
     f = SourceFilter(allow=("arxiv.org",))
     fs = FilteringSearch(inner, f, oversample=5)
@@ -110,10 +111,12 @@ async def test_filtering_search_oversamples_to_compensate():
 
 @pytest.mark.asyncio
 async def test_filtering_search_records_rejected_for_audit():
-    inner = FakeSearch([
-        SearchResult(url="https://medium.com/x", title="x", snippet="x"),
-        SearchResult(url="https://arxiv.org/y", title="y", snippet="y"),
-    ])
+    inner = FakeSearch(
+        [
+            SearchResult(url="https://medium.com/x", title="x", snippet="x"),
+            SearchResult(url="https://arxiv.org/y", title="y", snippet="y"),
+        ]
+    )
     f = SourceFilter(allow=("arxiv.org",))
     fs = FilteringSearch(inner, f)
     await fs.search("q", max_results=5)

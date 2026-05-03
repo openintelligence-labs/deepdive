@@ -36,9 +36,7 @@ EXPORTERS: dict[str, Callable[[ResearchReport], str]] = {
 def export(report: ResearchReport, format: str) -> str:  # noqa: A002 — matches docs idiom
     """Render ``report`` to the named format. Raises KeyError for unknown formats."""
     if format not in EXPORTERS:
-        raise KeyError(
-            f"Unknown export format {format!r}. Known: {sorted(EXPORTERS)}"
-        )
+        raise KeyError(f"Unknown export format {format!r}. Known: {sorted(EXPORTERS)}")
     return EXPORTERS[format](report)
 
 

@@ -63,12 +63,16 @@ def test_markdown_skips_sources_section_when_empty():
 def _grounded_report() -> ResearchReport:
     """Two claims: one grounded, one not."""
     cit_grounded = Citation(
-        url="https://x.com/a", title="A",
+        url="https://x.com/a",
+        title="A",
         excerpt="example servers",
-        offset_start=0, offset_end=15, grounded=True,
+        offset_start=0,
+        offset_end=15,
+        grounded=True,
     )
     cit_ungrounded = Citation(
-        url="https://x.com/b", title="B",
+        url="https://x.com/b",
+        title="B",
         excerpt="invented quote",
         grounded=False,
     )
@@ -116,15 +120,20 @@ def test_markdown_evidence_can_be_disabled():
 def test_markdown_truncates_long_excerpts():
     long_excerpt = "x" * 500
     cit = Citation(
-        url="https://x.com/a", title="A",
-        excerpt=long_excerpt, offset_start=0, offset_end=500, grounded=True,
+        url="https://x.com/a",
+        title="A",
+        excerpt=long_excerpt,
+        offset_start=0,
+        offset_end=500,
+        grounded=True,
     )
     report = ResearchReport(
         question="Q",
         summary="s",
         sections=[
             ReportSection(
-                heading="h", body="b",
+                heading="h",
+                body="b",
                 claims=[Claim(text="claim", citations=[cit])],
             )
         ],

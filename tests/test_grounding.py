@@ -125,7 +125,8 @@ def test_ground_citation_marks_grounded_when_excerpt_found():
 def test_ground_citation_marks_ungrounded_when_excerpt_missing():
     body = "Python was created by Guido van Rossum in 1991."
     citation = Citation(
-        url="https://example.com/", title="t",
+        url="https://example.com/",
+        title="t",
         excerpt="invented by aliens",  # not in source
     )
     grounded = ground_citation(body, citation)
@@ -166,9 +167,7 @@ def test_filter_grounded_keeps_all_when_include_ungrounded():
         text="ungrounded",
         citations=[Citation(url="https://x.com/", title="t", grounded=False)],
     )
-    out = filter_grounded(
-        [grounded_claim, ungrounded_claim], include_ungrounded=True
-    )
+    out = filter_grounded([grounded_claim, ungrounded_claim], include_ungrounded=True)
     assert len(out) == 2
 
 
@@ -200,7 +199,7 @@ async def test_grounded_extractor_returns_grounded_claims_when_excerpts_match():
         '   "excerpt": "Rust was created by Graydon Hoare at Mozilla"},'
         '  {"text": "Rust emphasizes memory safety.", '
         '   "excerpt": "It emphasizes memory safety without garbage collection"}'
-        ']}'
+        "]}"
     )
     provider = ScriptedProvider([response])
     extractor = ClaimExtractor(
@@ -227,7 +226,7 @@ async def test_grounded_extractor_marks_invented_excerpts_ungrounded():
         '   "excerpt": "Rust was created by Graydon Hoare at Mozilla"},'
         '  {"text": "Rust is fastest language.", '
         '   "excerpt": "Rust is the absolute fastest language ever"}'
-        ']}'
+        "]}"
     )
     provider = ScriptedProvider([response])
     extractor = ClaimExtractor(

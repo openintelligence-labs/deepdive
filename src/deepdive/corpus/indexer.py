@@ -175,9 +175,7 @@ class CorpusIndex:
                 )
             ]
             for chunk_id in old_chunk_ids:
-                self.conn.execute(
-                    "DELETE FROM vec_chunks WHERE chunk_id = ?", (chunk_id,)
-                )
+                self.conn.execute("DELETE FROM vec_chunks WHERE chunk_id = ?", (chunk_id,))
             self.conn.execute("DELETE FROM chunks WHERE doc_id = ?", (row[0],))
             self.conn.execute("DELETE FROM documents WHERE doc_id = ?", (row[0],))
 
@@ -199,8 +197,7 @@ class CorpusIndex:
 
         for chunk, vec in zip(chunks, vectors, strict=True):
             cur = self.conn.execute(
-                "INSERT INTO chunks (doc_id, text, offset_start, offset_end)"
-                " VALUES (?, ?, ?, ?)",
+                "INSERT INTO chunks (doc_id, text, offset_start, offset_end) VALUES (?, ?, ?, ?)",
                 (doc_id, chunk.text, chunk.offset_start, chunk.offset_end),
             )
             chunk_id = self.conn.execute("SELECT last_insert_rowid()").fetchone()[0]
@@ -234,9 +231,7 @@ class CorpusIndex:
         """Cosine-search the corpus. Returns the top-k hits (smaller distance = closer)."""
         if self._dim is None:
             # No embeddings yet — try to detect from existing vec table
-            cur = self.conn.execute(
-                "SELECT name FROM sqlite_master WHERE name = 'vec_chunks'"
-            )
+            cur = self.conn.execute("SELECT name FROM sqlite_master WHERE name = 'vec_chunks'")
             if cur.fetchone() is None:
                 return []
         embed_result = await self.embeddings.embed([query])

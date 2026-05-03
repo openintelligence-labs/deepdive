@@ -36,9 +36,7 @@ class LocalCorpusClient:
             title = Path(h.source_path).name
             snippet = h.text[:300]
             try:
-                out.append(
-                    SearchResult(url=url, title=title, snippet=snippet, source="corpus")
-                )
+                out.append(SearchResult(url=url, title=title, snippet=snippet, source="corpus"))
             except Exception:
                 continue
         return out
@@ -79,7 +77,7 @@ class LocalCorpusScraper:
         # Path format: /corpus/<encoded source_path>
         if not parsed.path.startswith("/corpus/"):
             return None
-        source_path = unquote(parsed.path[len("/corpus/"):])
+        source_path = unquote(parsed.path[len("/corpus/") :])
         # Offset is in the fragment as `offset=N`
         offset = 0
         if parsed.fragment.startswith("offset="):

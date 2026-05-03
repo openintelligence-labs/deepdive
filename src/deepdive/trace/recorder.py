@@ -62,9 +62,7 @@ class TraceRecorder:
             }
         )
 
-    def record_search(
-        self, query: str, max_results: int, results: list[SearchResult]
-    ) -> None:
+    def record_search(self, query: str, max_results: int, results: list[SearchResult]) -> None:
         self._write(
             {
                 "type": "search",
@@ -86,9 +84,7 @@ class TraceRecorder:
 
     def record_event(self, event_type: str, data: dict[str, Any]) -> None:
         """Record a high-level pipeline event (start/queries_generated/etc.)."""
-        self._write(
-            {"type": "event", "ts": time.time(), "event_type": event_type, "data": data}
-        )
+        self._write({"type": "event", "ts": time.time(), "event_type": event_type, "data": data})
 
     def close(self) -> None:
         if not self._fh.closed:
@@ -137,9 +133,7 @@ class _RecordingProvider(BaseLLMProvider):
         **kwargs: Any,
     ) -> AsyncIterator[str]:
         # Stream-only path is not used by the pipeline today, but pass through.
-        async for chunk in self._inner.stream(
-            messages, model, temperature, max_tokens, **kwargs
-        ):
+        async for chunk in self._inner.stream(messages, model, temperature, max_tokens, **kwargs):
             yield chunk
 
     async def stream_events(

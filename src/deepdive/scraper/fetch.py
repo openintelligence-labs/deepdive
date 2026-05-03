@@ -134,9 +134,7 @@ class Scraper:
         return None
 
     async def fetch_many(self, urls: list[str]) -> list[ScrapedPage]:
-        results = await asyncio.gather(
-            *(self.fetch(u) for u in urls), return_exceptions=True
-        )
+        results = await asyncio.gather(*(self.fetch(u) for u in urls), return_exceptions=True)
         return [r for r in results if isinstance(r, ScrapedPage)]
 
     @staticmethod

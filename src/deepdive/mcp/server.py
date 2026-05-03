@@ -83,8 +83,7 @@ def build_research_registry() -> ToolRegistry:
                     "type": "array",
                     "items": {"type": "string"},
                     "description": (
-                        "Optional blocklist of hostnames "
-                        "(e.g. ['medium.com', '*.substack.com'])."
+                        "Optional blocklist of hostnames (e.g. ['medium.com', '*.substack.com'])."
                     ),
                 },
                 "max_pages": {
@@ -94,8 +93,7 @@ def build_research_registry() -> ToolRegistry:
                 "export_format": {
                     "type": "string",
                     "description": (
-                        "Output format: markdown (default), latex, bibtex, "
-                        "json, obsidian, notion."
+                        "Output format: markdown (default), latex, bibtex, json, obsidian, notion."
                     ),
                 },
             },

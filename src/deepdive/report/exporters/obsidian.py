@@ -38,9 +38,7 @@ def to_obsidian(report: ResearchReport) -> str:
     lines.append(f"created: {report.generated_at.strftime('%Y-%m-%d')}")
     lines.append("source: deepdive")
     lines.append(f"sources_count: {len(report.sources)}")
-    grounded_total = sum(
-        1 for s in report.sections for c in s.claims if c.grounded
-    )
+    grounded_total = sum(1 for s in report.sections for c in s.claims if c.grounded)
     total_claims = sum(len(s.claims) for s in report.sections)
     lines.append(f"grounded: {grounded_total}/{total_claims}")
     lines.append("tags: [research, deepdive]")
