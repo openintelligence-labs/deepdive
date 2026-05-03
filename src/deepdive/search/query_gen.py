@@ -24,7 +24,7 @@ async def generate_queries(
 ) -> list[SearchQuery]:
     """Generate N diverse search queries for a research question.
 
-    Uses agentic-kit's ``LLM.extract`` for robust JSON parsing across any provider.
+    Uses actants' ``LLM.extract`` for robust JSON parsing across any provider.
     """
     llm = llm or LLM()
     prompt = _INSTRUCTIONS.format(n=n, question=question)

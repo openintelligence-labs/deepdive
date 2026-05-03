@@ -98,7 +98,7 @@ def test_assert_loopback_passes_for_localhost():
 
 
 class FakeEmbeddings:
-    """Wrap the agentic-kit fake provider as the higher-level Embeddings client."""
+    """Wrap the actants fake provider as the higher-level Embeddings client."""
 
     def __init__(self, dim: int = 8) -> None:
         from actants.testing import FakeEmbeddingProvider

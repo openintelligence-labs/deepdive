@@ -9,7 +9,7 @@ git clone https://github.com/openintelligence-labs/deepdive
 cd deepdive
 python -m venv .venv && source .venv/bin/activate
 pip install -e '.[dev]'
-pip install -e ../agentic-kit  # if developing against local agentic-kit
+pip install -e ../actants  # if developing against a local actants checkout
 pytest tests/
 ```
 
@@ -33,6 +33,6 @@ ollama pull llama3.2
 - Local-first, no cloud dependencies
 - Privacy: no telemetry, no analytics
 - All I/O is async
-- Use agentic-kit for LLM calls — don't call providers directly
+- Use actants for LLM calls — don't call providers directly
 
 Join us on [Discord](https://discord.gg/openintelligence-labs).
