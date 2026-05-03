@@ -3,13 +3,13 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 
 import pytest
-from agentic_kit.llm.base import (
+from actants.llm.base import (
     BaseLLMProvider,
     ChatMessage,
     CompletionResult,
     TokenUsage,
 )
-from agentic_kit.llm.client import LLM
+from actants.llm.client import LLM
 
 from deepdive.analysis.claims import ClaimExtractor, _parse_lines, cross_reference
 from deepdive.models import Citation, Claim, ScrapedPage

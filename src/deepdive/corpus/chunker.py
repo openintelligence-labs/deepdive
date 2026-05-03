@@ -51,6 +51,10 @@ def chunk_text(
     Each chunk overlaps the previous by ``overlap_chars`` so a relevant claim
     near a chunk boundary is still findable. Both bounds are character-based;
     we don't tokenize because the embedder will do that downstream.
+
+    Invariant: every chunk's ``text`` equals ``source_text[offset_start:offset_end]``.
+    Span-grounding relies on this — without it, an excerpt match against the
+    chunk text wouldn't translate back to a slice of the original document.
     """
     if not text or not text.strip():
         return []
@@ -59,42 +63,41 @@ def chunk_text(
         return []
 
     chunks: list[Chunk] = []
-    cur_text: list[str] = []
     cur_start: int | None = None
     cur_end: int = 0
 
     def flush() -> None:
-        nonlocal cur_text, cur_start, cur_end
-        if cur_text and cur_start is not None:
-            joined = " ".join(cur_text)
-            chunks.append(Chunk(text=joined, offset_start=cur_start, offset_end=cur_end))
-        cur_text = []
+        nonlocal cur_start, cur_end
+        if cur_start is not None and cur_end > cur_start:
+            # Chunk text is the literal slice of the source — keeps the
+            # `text == source[start:end]` invariant intact even after overlap.
+            chunks.append(
+                Chunk(
+                    text=text[cur_start:cur_end],
+                    offset_start=cur_start,
+                    offset_end=cur_end,
+                )
+            )
         cur_start = None
         cur_end = 0
 
     for sent, start in sentences:
         sent_len = len(sent)
+        sent_end = start + sent_len
         if cur_start is None:
             cur_start = start
-            cur_end = start + sent_len
-            cur_text.append(sent)
+            cur_end = sent_end
             continue
         # Would this sentence overflow the chunk?
-        prospective = cur_end - cur_start + 1 + sent_len
-        if prospective > max_chars and cur_text:
+        prospective = sent_end - cur_start
+        if prospective > max_chars:
             flush()
-            # Start a new chunk; back-track ``overlap_chars`` worth of text by
-            # re-including the tail of the prior chunk's last sentence.
+            # Start a new chunk; back-track ``overlap_chars`` worth of text so
+            # claims near the boundary are still findable in this chunk too.
             tail_start = max(0, start - overlap_chars)
             cur_start = tail_start
-            cur_end = start + sent_len
-            # Pull the prefix between tail_start and start into the new chunk
-            prefix = text[tail_start:start].strip()
-            if prefix:
-                cur_text.append(prefix)
-            cur_text.append(sent)
+            cur_end = sent_end
         else:
-            cur_text.append(sent)
-            cur_end = start + sent_len
+            cur_end = sent_end
     flush()
     return chunks

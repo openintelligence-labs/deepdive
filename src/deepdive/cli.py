@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 import click
-from agentic_kit import setup_logging
+from actants import setup_logging
 from rich.console import Console
 from rich.live import Live
 from rich.markdown import Markdown
@@ -30,10 +30,17 @@ async def _run_research(
     source_filter=None,
     export_format: str = "markdown",
     plan_only: bool = False,
+    force: bool = False,
 ) -> None:
-    pipeline = ResearchPipeline(
-        config=config, trace_path=trace_path, source_filter=source_filter
-    )
+    # Refuse to clobber an existing output file unless the user opted in with
+    # --force. Cheap protection against losing a long-running report run.
+    if output_path is not None and output_path.exists() and not force:
+        console.print(
+            f"[red]Refusing to overwrite existing file:[/] {output_path}\n"
+            "[dim]Pass --force to overwrite, or pick a different -o path.[/]"
+        )
+        sys.exit(2)
+    pipeline = ResearchPipeline(config=config, trace_path=trace_path, source_filter=source_filter)
     report: ResearchReport | None = None
 
     with Live(console=console, refresh_per_second=4) as live:
@@ -207,10 +214,30 @@ def main():
     default=False,
     help="Print the generated search-query plan and exit without running.",
 )
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Overwrite the -o output file if it already exists.",
+)
 def research(
-    question, model, backend, queries, output, debug, log_format,
-    ground, include_ungrounded, trace, allow_domains, block_domains,
-    export_format, offline, corpus, plan_only,
+    question,
+    model,
+    backend,
+    queries,
+    output,
+    debug,
+    log_format,
+    ground,
+    include_ungrounded,
+    trace,
+    allow_domains,
+    block_domains,
+    export_format,
+    offline,
+    corpus,
+    plan_only,
+    force,
 ):
     """Research a question. Searches the web, analyzes sources, writes a cited report.
 
@@ -243,8 +270,14 @@ def research(
     try:
         asyncio.run(
             _run_research(
-                question, config, output, trace_path, source_filter,
-                export_format, plan_only,
+                question,
+                config,
+                output,
+                trace_path,
+                source_filter,
+                export_format,
+                plan_only,
+                force,
             )
         )
     except KeyboardInterrupt:
@@ -278,16 +311,12 @@ async def _run_index(root: Path, output: Path, embed_model: str) -> None:
     async with CorpusIndex(output, embed_model=embed_model) as index:
         if root.is_file():
             added = await index.index_file(root)
-            console.print(
-                f"  [green]{root}[/] [dim]→[/] {added} chunks"
-            )
+            console.print(f"  [green]{root}[/] [dim]→[/] {added} chunks")
         else:
             async for path, added in index.index_directory(root):
                 marker = "✓" if added > 0 else "↺"
                 rel = path.relative_to(root.resolve())
-                console.print(
-                    f"  [green]{marker}[/] {rel} [dim]→[/] {added} chunks"
-                )
+                console.print(f"  [green]{marker}[/] {rel} [dim]→[/] {added} chunks")
         stats = index.stats()
     console.print(
         f"\n[bold]Index:[/] {output}  [dim]({stats['documents']} documents, "
@@ -298,7 +327,8 @@ async def _run_index(root: Path, output: Path, embed_model: str) -> None:
 @main.command(name="index")
 @click.argument("root", type=click.Path(exists=True, path_type=Path))
 @click.option(
-    "--output", "-o",
+    "--output",
+    "-o",
     type=click.Path(dir_okay=False, path_type=Path),
     required=True,
     help="Path to write the sqlite-vec index (e.g. ~/.local/share/deepdive/index.db).",
@@ -319,11 +349,17 @@ def index_corpus(root: Path, output: Path, embed_model: str):
     asyncio.run(_run_index(root, output, embed_model))
 
 
-async def _run_replay(trace_path: Path, output: Path | None) -> None:
+async def _run_replay(trace_path: Path, output: Path | None, force: bool = False) -> None:
+    if output is not None and output.exists() and not force:
+        console.print(
+            f"[red]Refusing to overwrite existing file:[/] {output}\n"
+            "[dim]Pass --force to overwrite.[/]"
+        )
+        sys.exit(2)
     # Read the original question + config-relevant info from the trace's first event.
     import json as _json
 
-    from agentic_kit import LLM
+    from actants import LLM
 
     from deepdive.trace import replay_provider
     from deepdive.trace.replayer import ReplayingScraper, ReplayingSearch
@@ -382,17 +418,24 @@ async def _run_replay(trace_path: Path, output: Path | None) -> None:
 @main.command()
 @click.argument("trace_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option(
-    "--output", "-o",
+    "--output",
+    "-o",
     type=click.Path(dir_okay=False, path_type=Path),
     default=None,
     help="Write replayed Markdown report here.",
 )
-def replay(trace_path: Path, output: Path | None):
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Overwrite the -o output file if it already exists.",
+)
+def replay(trace_path: Path, output: Path | None, force: bool):
     """Replay a recorded trace offline. Produces a byte-identical report.
 
     Example: deepdive replay report.md.trace.jsonl -o replayed.md
     """
-    asyncio.run(_run_replay(trace_path, output))
+    asyncio.run(_run_replay(trace_path, output, force))
 
 
 @main.command(name="inspect")

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from agentic_kit import LLM
+from actants import LLM
 from pydantic import BaseModel, Field
 
 from deepdive.models import SearchQuery

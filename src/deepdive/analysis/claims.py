@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import structlog
-from agentic_kit import LLM
+from actants import LLM
 from pydantic import BaseModel, Field
 
 from deepdive.analysis.grounding import (
@@ -81,8 +81,18 @@ class ClaimExtractor:
                 title=page.title,
                 excerpt=gc.excerpt or None,
             )
-            claim = Claim(text=gc.text, citations=[citation], confidence=0.6)
-            out.append(ground_claim(page.text, claim))
+            grounded = ground_claim(
+                page.text,
+                # Provisional confidence; adjusted below based on whether the
+                # excerpt actually grounded against the source body.
+                Claim(text=gc.text, citations=[citation], confidence=0.6),
+            )
+            # Grounded claims are higher-confidence than ungrounded ones — that's
+            # the whole point of grounding. cross_reference() also nudges by
+            # +0.1 per duplicate source, so we leave headroom for that.
+            if grounded.grounded:
+                grounded.confidence = 0.8
+            out.append(grounded)
         return out
 
     async def _extract_legacy(self, page: ScrapedPage) -> list[Claim]:

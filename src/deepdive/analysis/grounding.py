@@ -80,7 +80,8 @@ def _normalize_for_match(s: str) -> str:
 
 
 def find_excerpt_offsets(body: str, excerpt: str) -> tuple[int, int] | None:
-    """Locate ``excerpt`` in ``body``. Tries exact match first, then normalized.
+    """Locate ``excerpt`` in ``body``. Tries exact match, then whitespace-and-case
+    normalized match.
 
     Returns (start, end) char offsets into ``body``, or None if not found.
     Normalized search uses a sliding-window strategy: look for the normalized
@@ -95,9 +96,11 @@ def find_excerpt_offsets(body: str, excerpt: str) -> tuple[int, int] | None:
     if idx >= 0:
         return (idx, idx + len(excerpt))
 
-    # Fallback: normalized match. We rebuild a position map so we can return
-    # offsets into the ORIGINAL body, not the normalized one.
-    norm_excerpt = _normalize_for_match(excerpt)
+    # Fallback: whitespace + Unicode + case normalized. LLMs sometimes emit
+    # excerpts with different capitalization than the source (e.g. title-cased
+    # "The Moon" vs body "the moon" after lowercasing in HTML rendering).
+    # Casefolding is correct for cross-locale matching (handles Turkish ß etc.).
+    norm_excerpt = _normalize_for_match(excerpt).casefold()
     if not norm_excerpt:
         return None
 
@@ -108,7 +111,7 @@ def find_excerpt_offsets(body: str, excerpt: str) -> tuple[int, int] | None:
     norm_to_orig: list[int] = []
     in_ws = False
     for i, ch in enumerate(body):
-        nch = unicodedata.normalize("NFKC", ch)
+        nch = unicodedata.normalize("NFKC", ch).casefold()
         for sub in nch:
             if sub.isspace():
                 if not in_ws:

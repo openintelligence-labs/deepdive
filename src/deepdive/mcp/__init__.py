@@ -3,7 +3,7 @@
 Exposes one tool — ``research(question, allow_domains, block_domains, max_pages)``
 — over the Model Context Protocol so Claude Desktop, Cursor, and any MCP-aware
 client can invoke DeepDive as a remote research tool. Built on
-``agentic_kit.mcp.serve``.
+``actants.mcp.serve``.
 """
 
 from __future__ import annotations

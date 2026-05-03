@@ -12,9 +12,10 @@ research run made zero outbound calls.
 
 from __future__ import annotations
 
+import ipaddress
 from urllib.parse import urlparse
 
-_LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", "0.0.0.0"})
+_LOOPBACK_NAMES = frozenset({"localhost"})
 
 
 class OfflineViolation(RuntimeError):
@@ -22,16 +23,25 @@ class OfflineViolation(RuntimeError):
 
 
 def is_loopback(url: str) -> bool:
-    """True iff the URL's host is loopback (localhost / 127.x / ::1)."""
+    """True iff the URL's host is loopback.
+
+    Accepts: ``localhost``, anything in 127.0.0.0/8, and ``::1`` (in any IPv6
+    form). Rejects suffix-spoofers like ``127.evil.com`` because the hostname
+    is parsed as an IP first; a string like that fails ip parsing AND isn't
+    the literal name ``localhost``.
+    """
     try:
         host = (urlparse(url).hostname or "").lower()
     except Exception:
         return False
     if not host:
         return False
-    if host in _LOOPBACK_HOSTS:
+    if host in _LOOPBACK_NAMES:
         return True
-    return host.startswith("127.")
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
 
 
 def assert_loopback(url: str, *, what: str = "URL") -> None:

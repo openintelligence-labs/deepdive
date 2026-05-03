@@ -46,7 +46,7 @@ async def test_research_tool_callable_via_in_memory_mcp():
     We don't actually run the research pipeline (it would hit the network);
     we just verify the tool surface is correctly mounted and reachable.
     """
-    from agentic_kit.mcp import build_server
+    from actants.mcp import build_server
     from mcp.shared.memory import create_connected_server_and_client_session
 
     server = build_server(build_research_registry(), name="deepdive-test")

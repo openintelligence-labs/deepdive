@@ -25,7 +25,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import sqlite_vec
-from agentic_kit import Embeddings
+from actants import Embeddings
 
 from deepdive.corpus.chunker import chunk_text
 
@@ -137,10 +137,16 @@ class CorpusIndex:
         """Create the vec0 virtual table once we know the embedder's dimension."""
         if self._dim is not None:
             return
-        self._dim = dim
+        # Defense in depth: ``dim`` comes from the embedder output and is always
+        # an int in practice, but f-stringing into SQL is fragile — coerce
+        # explicitly so any non-int slipping in raises here, not later.
+        safe_dim = int(dim)
+        if safe_dim <= 0:
+            raise ValueError(f"embedding dimension must be positive, got {dim!r}")
+        self._dim = safe_dim
         self.conn.execute(
             f"CREATE VIRTUAL TABLE IF NOT EXISTS vec_chunks USING vec0("
-            f"chunk_id INTEGER PRIMARY KEY, embedding FLOAT[{dim}])"
+            f"chunk_id INTEGER PRIMARY KEY, embedding FLOAT[{safe_dim}])"
         )
 
     async def index_file(self, path: str | Path) -> int:
@@ -169,9 +175,7 @@ class CorpusIndex:
                 )
             ]
             for chunk_id in old_chunk_ids:
-                self.conn.execute(
-                    "DELETE FROM vec_chunks WHERE chunk_id = ?", (chunk_id,)
-                )
+                self.conn.execute("DELETE FROM vec_chunks WHERE chunk_id = ?", (chunk_id,))
             self.conn.execute("DELETE FROM chunks WHERE doc_id = ?", (row[0],))
             self.conn.execute("DELETE FROM documents WHERE doc_id = ?", (row[0],))
 
@@ -193,8 +197,7 @@ class CorpusIndex:
 
         for chunk, vec in zip(chunks, vectors, strict=True):
             cur = self.conn.execute(
-                "INSERT INTO chunks (doc_id, text, offset_start, offset_end)"
-                " VALUES (?, ?, ?, ?)",
+                "INSERT INTO chunks (doc_id, text, offset_start, offset_end) VALUES (?, ?, ?, ?)",
                 (doc_id, chunk.text, chunk.offset_start, chunk.offset_end),
             )
             chunk_id = self.conn.execute("SELECT last_insert_rowid()").fetchone()[0]
@@ -228,9 +231,7 @@ class CorpusIndex:
         """Cosine-search the corpus. Returns the top-k hits (smaller distance = closer)."""
         if self._dim is None:
             # No embeddings yet — try to detect from existing vec table
-            cur = self.conn.execute(
-                "SELECT name FROM sqlite_master WHERE name = 'vec_chunks'"
-            )
+            cur = self.conn.execute("SELECT name FROM sqlite_master WHERE name = 'vec_chunks'")
             if cur.fetchone() is None:
                 return []
         embed_result = await self.embeddings.embed([query])

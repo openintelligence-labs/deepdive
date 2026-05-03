@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from agentic_kit.embeddings.base import EmbeddingResult
+from actants.embeddings.base import EmbeddingResult
 
 from deepdive.corpus.chunker import chunk_text
 from deepdive.corpus.indexer import CorpusIndex
@@ -44,20 +44,40 @@ def test_chunker_offsets_are_monotonic():
     assert starts == sorted(starts)
 
 
+def test_chunker_text_equals_source_slice():
+    # Span-grounding invariant: chunk.text must equal source[start:end]
+    # exactly so excerpt offsets translate back to the original document.
+    text = ". ".join(f"Sentence number {i}" for i in range(60)) + "."
+    chunks = chunk_text(text, max_chars=200, overlap_chars=40)
+    assert len(chunks) > 1, "test needs multi-chunk output to exercise overlap"
+    for c in chunks:
+        assert text[c.offset_start : c.offset_end] == c.text
+
+
 # ──────────────────────────────────────────────────────────────────────
 # Offline helpers
 # ──────────────────────────────────────────────────────────────────────
 
 
-@pytest.mark.parametrize("url,expected", [
-    ("http://localhost:11434/api/chat", True),
-    ("http://127.0.0.1:8000/", True),
-    ("http://127.5.5.5/", True),
-    ("http://[::1]/", True),
-    ("https://api.openai.com/v1/chat", False),
-    ("https://arxiv.org/abs/x", False),
-    ("not-a-url", False),
-])
+@pytest.mark.parametrize(
+    "url,expected",
+    [
+        ("http://localhost:11434/api/chat", True),
+        ("http://127.0.0.1:8000/", True),
+        ("http://127.5.5.5/", True),
+        ("http://[::1]/", True),
+        ("http://[0:0:0:0:0:0:0:1]/", True),  # IPv6 long form
+        ("https://api.openai.com/v1/chat", False),
+        ("https://arxiv.org/abs/x", False),
+        ("not-a-url", False),
+        # SSRF guard regressions: prefix-spoofers must NOT pass.
+        ("http://127.evil.com/", False),
+        ("http://127.0.0.1.evil.com/", False),
+        ("http://localhost.evil.com/", False),
+        # 0.0.0.0 is a wildcard bind, not a loopback — must be rejected.
+        ("http://0.0.0.0/", False),
+    ],
+)
 def test_is_loopback(url, expected):
     assert is_loopback(url) is expected
 
@@ -81,7 +101,7 @@ class FakeEmbeddings:
     """Wrap the agentic-kit fake provider as the higher-level Embeddings client."""
 
     def __init__(self, dim: int = 8) -> None:
-        from agentic_kit.testing import FakeEmbeddingProvider
+        from actants.testing import FakeEmbeddingProvider
 
         self.provider = FakeEmbeddingProvider(dimensions=dim)
 
@@ -198,7 +218,7 @@ async def test_local_corpus_scraper_blocks_remote_in_offline(tmp_path):
 
 
 def test_pipeline_offline_raises_when_llm_endpoint_is_remote():
-    from agentic_kit import LLM
+    from actants import LLM
 
     from deepdive.config import DeepDiveConfig
     from deepdive.pipeline import ResearchPipeline
@@ -211,7 +231,7 @@ def test_pipeline_offline_raises_when_llm_endpoint_is_remote():
 
 
 def test_pipeline_offline_passes_for_localhost_endpoint():
-    from agentic_kit import LLM
+    from actants import LLM
 
     from deepdive.config import DeepDiveConfig
     from deepdive.pipeline import ResearchPipeline
