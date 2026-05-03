@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
 [![Tests](https://img.shields.io/badge/tests-116%20passing-brightgreen)]()
-[![Powered by agentic-kit](https://img.shields.io/badge/powered%20by-agentic--kit-7c3aed)](https://github.com/openintelligence-labs/agentic-kit)
+[![Powered by actants](https://img.shields.io/badge/powered%20by-actants-7c3aed)](https://github.com/openintelligence-labs/actants)
 
 A local-first AI research agent. Asks a question, searches the web (or your own documents), reads the sources, and writes a cited report. Every claim is checked against a verbatim excerpt from its source — claims the validator can't verify are dropped.
 
@@ -101,7 +101,7 @@ ollama pull nomic-embed-text   # embeddings (only needed for --corpus)
 
 ## Architecture
 
-DeepDive is built on [agentic-kit](https://github.com/openintelligence-labs/agentic-kit). The pipeline:
+DeepDive is built on [actants](https://github.com/openintelligence-labs/actants). The pipeline:
 
 ```
 question
@@ -138,6 +138,6 @@ Every external call is wrapped in optional recorders, which is how trace and rep
 - **Version:** 0.3.0 (in development)
 - **License:** MIT
 - **Python:** 3.12+
-- **Framework:** [agentic-kit ≥ 0.5.0](https://github.com/openintelligence-labs/agentic-kit)
+- **Framework:** [actants ≥ 0.5.0](https://github.com/openintelligence-labs/actants)
 
 Part of [Open Intelligence Labs](https://github.com/openintelligence-labs).
