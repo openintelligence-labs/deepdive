@@ -25,7 +25,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import sqlite_vec
-from agentic_kit import Embeddings
+from actants import Embeddings
 
 from deepdive.corpus.chunker import chunk_text
 
@@ -137,10 +137,16 @@ class CorpusIndex:
         """Create the vec0 virtual table once we know the embedder's dimension."""
         if self._dim is not None:
             return
-        self._dim = dim
+        # Defense in depth: ``dim`` comes from the embedder output and is always
+        # an int in practice, but f-stringing into SQL is fragile — coerce
+        # explicitly so any non-int slipping in raises here, not later.
+        safe_dim = int(dim)
+        if safe_dim <= 0:
+            raise ValueError(f"embedding dimension must be positive, got {dim!r}")
+        self._dim = safe_dim
         self.conn.execute(
             f"CREATE VIRTUAL TABLE IF NOT EXISTS vec_chunks USING vec0("
-            f"chunk_id INTEGER PRIMARY KEY, embedding FLOAT[{dim}])"
+            f"chunk_id INTEGER PRIMARY KEY, embedding FLOAT[{safe_dim}])"
         )
 
     async def index_file(self, path: str | Path) -> int:

@@ -9,13 +9,13 @@ import json
 from collections.abc import AsyncIterator
 
 import pytest
-from agentic_kit.llm.base import (
+from actants.llm.base import (
     BaseLLMProvider,
     ChatMessage,
     CompletionResult,
     TokenUsage,
 )
-from agentic_kit.llm.client import LLM
+from actants.llm.client import LLM
 
 from deepdive.config import DeepDiveConfig
 from deepdive.models import ScrapedPage, SearchResult

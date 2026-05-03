@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from agentic_kit.tools.registry import ToolRegistry
+from actants.tools.registry import ToolRegistry
 
 from deepdive.config import DeepDiveConfig
 from deepdive.models import ResearchReport
@@ -116,7 +116,7 @@ def serve_mcp(
     Default transport is ``stdio`` so Claude Desktop can spawn this process
     directly. Use ``streamable-http`` for IDE plugins or remote callers.
     """
-    from agentic_kit.mcp import serve
+    from actants.mcp import serve
 
     serve(
         build_research_registry(),

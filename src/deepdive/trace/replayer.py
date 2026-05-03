@@ -9,11 +9,12 @@ network.
 from __future__ import annotations
 
 import json
+import threading
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
 
-from agentic_kit.llm.base import (
+from actants.llm.base import (
     BaseLLMProvider,
     ChatMessage,
     CompletionResult,
@@ -43,6 +44,10 @@ class _TraceIndex:
         self.searches: dict[str, list[list[SearchResult]]] = {}
         self.scrapes: dict[str, list[ScrapedPage | None]] = {}
         self.events: list[dict[str, Any]] = []
+        # Lock guards the three queues against concurrent pop()s. The pipeline
+        # runs sequentially today, but anyone parallelizing extraction across
+        # pages would otherwise race on identical-key queues.
+        self._lock = threading.Lock()
         self._load()
 
     def _load(self) -> None:
@@ -75,23 +80,26 @@ class _TraceIndex:
                 # trace_start / trace_end are informational
 
     def pop_llm(self, key: str) -> CompletionResult:
-        queue = self.llm_calls.get(key)
-        if not queue:
-            raise ReplayMiss(f"no recorded llm_call for key {key[:120]}…")
-        return queue.pop(0)
+        with self._lock:
+            queue = self.llm_calls.get(key)
+            if not queue:
+                raise ReplayMiss(f"no recorded llm_call for key {key[:120]}…")
+            return queue.pop(0)
 
     def pop_search(self, query: str, max_results: int) -> list[SearchResult]:
         key = json.dumps({"query": query, "max_results": max_results})
-        queue = self.searches.get(key)
-        if not queue:
-            raise ReplayMiss(f"no recorded search for {key}")
-        return queue.pop(0)
+        with self._lock:
+            queue = self.searches.get(key)
+            if not queue:
+                raise ReplayMiss(f"no recorded search for {key}")
+            return queue.pop(0)
 
     def pop_scrape(self, url: str) -> ScrapedPage | None:
-        queue = self.scrapes.get(url)
-        if not queue:
-            raise ReplayMiss(f"no recorded scrape for {url}")
-        return queue.pop(0)
+        with self._lock:
+            queue = self.scrapes.get(url)
+            if not queue:
+                raise ReplayMiss(f"no recorded scrape for {url}")
+            return queue.pop(0)
 
 
 class _ReplayProvider(BaseLLMProvider):
@@ -138,7 +146,7 @@ class _ReplayProvider(BaseLLMProvider):
         tools: list[ToolSpec] | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamEvent]:
-        from agentic_kit.llm.base import FinishDelta
+        from actants.llm.base import FinishDelta
 
         result = await self.complete(messages, model, temperature, max_tokens, tools=tools)
         if result.content:

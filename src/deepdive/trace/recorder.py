@@ -8,7 +8,7 @@ from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
 
-from agentic_kit.llm.base import (
+from actants.llm.base import (
     BaseLLMProvider,
     ChatMessage,
     CompletionResult,
@@ -154,7 +154,7 @@ class _RecordingProvider(BaseLLMProvider):
     ) -> AsyncIterator[StreamEvent]:
         # Buffer the full stream, then record it as a single complete() result so
         # replay is symmetric with non-streaming calls.
-        from agentic_kit.llm.base import (
+        from actants.llm.base import (
             FinishDelta,
             TextDelta,
             TokenUsage,

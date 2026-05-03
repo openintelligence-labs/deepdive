@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from agentic_kit import LLM
+from actants import LLM
 
 from deepdive.models import Citation, Claim, ReportSection, ResearchReport
 

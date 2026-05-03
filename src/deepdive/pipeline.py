@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from agentic_kit import LLM
+from actants import LLM
 
 from deepdive.analysis.claims import ClaimExtractor, cross_reference
 from deepdive.config import DeepDiveConfig

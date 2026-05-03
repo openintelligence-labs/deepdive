@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 
 import pytest
-from agentic_kit.llm.base import BaseLLMProvider, CompletionResult, TokenUsage
-from agentic_kit.llm.client import LLM
+from actants.llm.base import BaseLLMProvider, CompletionResult, TokenUsage
+from actants.llm.client import LLM
 
 from deepdive.config import DeepDiveConfig
 from deepdive.models import ScrapedPage, SearchResult

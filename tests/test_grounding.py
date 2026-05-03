@@ -5,13 +5,13 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 
 import pytest
-from agentic_kit.llm.base import (
+from actants.llm.base import (
     BaseLLMProvider,
     ChatMessage,
     CompletionResult,
     TokenUsage,
 )
-from agentic_kit.llm.client import LLM
+from actants.llm.client import LLM
 
 from deepdive.analysis.claims import ClaimExtractor
 from deepdive.analysis.grounding import (
@@ -89,6 +89,20 @@ def test_find_excerpt_unicode_normalization():
     body = "The eﬃcient algorithm runs fast."  # contains "ﬃ" ligature
     offsets = find_excerpt_offsets(body, "efficient algorithm")
     assert offsets is not None
+
+
+def test_find_excerpt_case_insensitive_fallback():
+    """Source uses one case, LLM extracts another. Should still ground.
+
+    This is common when the LLM rewords or when the body is lowercased during
+    HTML rendering. Without the case-insensitive fallback, legitimate claims
+    would be silently dropped.
+    """
+    body = "the apollo 11 mission landed on the moon in july 1969."
+    offsets = find_excerpt_offsets(body, "Apollo 11 mission landed on the Moon")
+    assert offsets is not None
+    start, end = offsets
+    assert "apollo 11" in body[start:end].lower()
 
 
 # ──────────────────────────────────────────────────────────────────────
