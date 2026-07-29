@@ -1,9 +1,12 @@
 # Changelog
 
-## [Unreleased]
+## [0.3.1] - 2026-07-29
+
+Supersedes v0.3.0 purely for dependency pinning; no functional changes.
 
 ### Fixed
 - Pin `mcp>=1.0,<2` in the `mcp`, `all`, and `dev` extras: the MCP Python SDK 2.0 (released after v0.3.0 was verified) restructured its API and breaks `actants.mcp` / `deepdive serve-mcp`. Installs that pulled `mcp==2.0.0` failed the in-memory MCP roundtrip and could not build the server.
+- CI: bump `actions/checkout` to v5 and `actions/setup-python` to v6 (Node 20 runtime deprecation warning on GitHub-hosted runners).
 
 ## [0.3.0] - 2026-07-29
 

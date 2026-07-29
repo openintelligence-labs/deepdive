@@ -135,7 +135,7 @@ Every external call is wrapped in optional recorders, which is how trace and rep
 
 ## Status
 
-- **Version:** 0.3.0
+- **Version:** 0.3.1
 - **License:** MIT
 - **Python:** 3.12+
 - **Framework:** [actants ≥ 0.5.0](https://github.com/openintelligence-labs/actants)
