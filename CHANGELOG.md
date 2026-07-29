@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- Pin `mcp>=1.0,<2` in the `mcp`, `all`, and `dev` extras: the MCP Python SDK 2.0 (released after v0.3.0 was verified) restructured its API and breaks `actants.mcp` / `deepdive serve-mcp`. Installs that pulled `mcp==2.0.0` failed the in-memory MCP roundtrip and could not build the server.
+
 ## [0.3.0] - 2026-07-29
 
 ### Added
