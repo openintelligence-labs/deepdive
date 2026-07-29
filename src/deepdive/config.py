@@ -8,7 +8,7 @@ class DeepDiveConfig(BaseSettings):
 
     # LLM
     llm_provider: str = "ollama"
-    llm_model: str = "llama2"
+    llm_model: str = "llama3.2"
     llm_base_url: str = "http://localhost:11434"
 
     # Search

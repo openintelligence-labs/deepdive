@@ -2,13 +2,13 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/tests-116%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-126%20passing-brightgreen)]()
 [![Powered by actants](https://img.shields.io/badge/powered%20by-actants-7c3aed)](https://github.com/openintelligence-labs/actants)
 
 A local-first AI research agent. Asks a question, searches the web (or your own documents), reads the sources, and writes a cited report. Every claim is checked against a verbatim excerpt from its source — claims the validator can't verify are dropped.
 
 ```bash
-pip install deepdive
+pip install git+https://github.com/openintelligence-labs/deepdive
 ollama pull llama3.2
 deepdive research "When did Apollo 11 land on the Moon?" -o report.md
 ```
@@ -89,9 +89,9 @@ deepdive serve-mcp --http --port 8765      # Streamable HTTP
 ## Install
 
 ```bash
-pip install deepdive[all]      # everything: MCP server, corpus indexing
-pip install deepdive[mcp]      # MCP server only
-pip install deepdive[corpus]   # local corpus indexing only
+pip install "deepdive[all] @ git+https://github.com/openintelligence-labs/deepdive"     # everything: MCP server, corpus indexing
+pip install "deepdive[mcp] @ git+https://github.com/openintelligence-labs/deepdive"     # MCP server only
+pip install "deepdive[corpus] @ git+https://github.com/openintelligence-labs/deepdive"  # local corpus indexing only
 
 ollama pull llama3.2           # tool-capable LLM (default)
 ollama pull nomic-embed-text   # embeddings (only needed for --corpus)
@@ -135,7 +135,7 @@ Every external call is wrapped in optional recorders, which is how trace and rep
 
 ## Status
 
-- **Version:** 0.3.0 (in development)
+- **Version:** 0.3.0
 - **License:** MIT
 - **Python:** 3.12+
 - **Framework:** [actants ≥ 0.5.0](https://github.com/openintelligence-labs/actants)
