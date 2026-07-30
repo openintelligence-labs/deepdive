@@ -8,7 +8,7 @@
 A local-first AI research agent. Asks a question, searches the web (or your own documents), reads the sources, and writes a cited report. Every claim is checked against a verbatim excerpt from its source — claims the validator can't verify are dropped.
 
 ```bash
-pip install git+https://github.com/openintelligence-labs/deepdive
+pip install deepdive-research
 ollama pull llama3.2
 deepdive research "When did Apollo 11 land on the Moon?" -o report.md
 ```
@@ -89,9 +89,9 @@ deepdive serve-mcp --http --port 8765      # Streamable HTTP
 ## Install
 
 ```bash
-pip install "deepdive[all] @ git+https://github.com/openintelligence-labs/deepdive"     # everything: MCP server, corpus indexing
-pip install "deepdive[mcp] @ git+https://github.com/openintelligence-labs/deepdive"     # MCP server only
-pip install "deepdive[corpus] @ git+https://github.com/openintelligence-labs/deepdive"  # local corpus indexing only
+pip install "deepdive-research[all]"     # everything: MCP server, corpus indexing
+pip install "deepdive-research[mcp]"     # MCP server only
+pip install "deepdive-research[corpus]"  # local corpus indexing only
 
 ollama pull llama3.2           # tool-capable LLM (default)
 ollama pull nomic-embed-text   # embeddings (only needed for --corpus)

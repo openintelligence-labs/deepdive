@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2] - 2026-07-29
+
+### Changed
+- Published to PyPI as **`deepdive-research`** (the name `deepdive` on PyPI belongs to an
+  unrelated package). Install with `pip install deepdive-research`; the CLI command and
+  import name remain `deepdive`.
+
 ## [0.3.1] - 2026-07-29
 
 Supersedes v0.3.0 purely for dependency pinning; no functional changes.

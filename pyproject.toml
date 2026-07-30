@@ -3,8 +3,8 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "deepdive"
-version = "0.3.1"
+name = "deepdive-research"
+version = "0.3.2"
 description = "Local-first, citation-honest, reproducible AI research agent. Span-grounded citations, trace + replay, multi-format export, MCP server. Runs on Ollama."
 readme = "README.md"
 license = { text = "MIT" }
