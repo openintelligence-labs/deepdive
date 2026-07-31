@@ -32,8 +32,7 @@ async def _run_research(
     plan_only: bool = False,
     force: bool = False,
 ) -> None:
-    # Refuse to clobber an existing output file unless the user opted in with
-    # --force. Cheap protection against losing a long-running report run.
+    # Guard against losing a long-running report run to an accidental clobber.
     if output_path is not None and output_path.exists() and not force:
         console.print(
             f"[red]Refusing to overwrite existing file:[/] {output_path}\n"
@@ -101,7 +100,7 @@ async def _run_research(
                 return
 
     if report is not None:
-        # Always render markdown for the on-screen preview (Rich understands it).
+        # The on-screen preview is always markdown regardless of --export format.
         md = report_to_markdown(report)
         console.print()
         console.print(Markdown(md))
@@ -258,13 +257,11 @@ def research(
     if queries:
         config.queries_per_question = queries
 
-    # If user gave -o report.md but no --trace, default the trace to a sibling
-    # file so the audit trail is always available.
+    # Default the trace to a sibling of -o so the audit trail always exists.
     trace_path = trace
     if trace_path is None and output is not None:
         trace_path = Path(str(output) + ".trace.jsonl")
 
-    # Build the source filter from --allow-domains / --block-domains.
     source_filter = _build_source_filter(allow_domains, block_domains)
 
     try:
@@ -356,7 +353,6 @@ async def _run_replay(trace_path: Path, output: Path | None, force: bool = False
             "[dim]Pass --force to overwrite.[/]"
         )
         sys.exit(2)
-    # Read the original question + config-relevant info from the trace's first event.
     import json as _json
 
     from actants import LLM

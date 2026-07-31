@@ -67,9 +67,7 @@ async def test_claim_extractor_returns_empty_on_empty_text():
 
 @pytest.mark.asyncio
 async def test_claim_extractor_returns_empty_on_parse_failure():
-    # All attempts return garbage (no list markers) → empty claim list.
-    # extract() calls LLM.extract internally which may retry, then falls back
-    # to LLM.complete() once more. Four slots is plenty.
+    # extract() retries, then falls back to complete(); 6 slots covers both.
     provider = ScriptedProvider(["garbage"] * 6)
     extractor = ClaimExtractor(
         llm=LLM(provider=provider, model="test", tracing=False),
@@ -81,8 +79,6 @@ async def test_claim_extractor_returns_empty_on_parse_failure():
 
 @pytest.mark.asyncio
 async def test_claim_extractor_falls_back_to_numbered_list():
-    # Two JSON-parse attempts fail, then plain-text completion returns a numbered
-    # list — fallback should parse those lines into claims.
     numbered = (
         "Here are the claims:\n"
         "1. Rust was created in 2006.\n"

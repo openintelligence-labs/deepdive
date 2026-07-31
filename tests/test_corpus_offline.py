@@ -10,10 +10,6 @@ from deepdive.corpus.indexer import CorpusIndex
 from deepdive.offline import OfflineViolation, assert_loopback, is_loopback
 from deepdive.search.local_corpus import LocalCorpusClient, LocalCorpusScraper
 
-# ──────────────────────────────────────────────────────────────────────
-# Chunker
-# ──────────────────────────────────────────────────────────────────────
-
 
 def test_chunker_returns_empty_for_blank_input():
     assert chunk_text("") == []
@@ -30,8 +26,6 @@ def test_chunker_splits_when_exceeding_max_chars():
     text = ". ".join(f"Sentence number {i}" for i in range(50)) + "."
     chunks = chunk_text(text, max_chars=200, overlap_chars=30)
     assert len(chunks) > 1
-    # Every chunk's recorded slice should be findable in the original text
-    # (allowing some slack for whitespace handling around boundaries)
     for c in chunks:
         assert c.offset_start >= 0
         assert c.offset_end <= len(text)
@@ -52,11 +46,6 @@ def test_chunker_text_equals_source_slice():
     assert len(chunks) > 1, "test needs multi-chunk output to exercise overlap"
     for c in chunks:
         assert text[c.offset_start : c.offset_end] == c.text
-
-
-# ──────────────────────────────────────────────────────────────────────
-# Offline helpers
-# ──────────────────────────────────────────────────────────────────────
 
 
 @pytest.mark.parametrize(
@@ -88,13 +77,7 @@ def test_assert_loopback_raises_for_remote():
 
 
 def test_assert_loopback_passes_for_localhost():
-    # No exception
     assert_loopback("http://localhost:11434/")
-
-
-# ──────────────────────────────────────────────────────────────────────
-# Indexer + local-corpus search (with FakeEmbeddingProvider)
-# ──────────────────────────────────────────────────────────────────────
 
 
 class FakeEmbeddings:
@@ -155,7 +138,6 @@ async def test_indexer_reindexes_changed_files(tmp_path):
     db_path = tmp_path / "corpus.db"
     async with CorpusIndex(db_path, embeddings=fake) as index:
         await index.index_file(doc)
-        # Modify file + bump mtime
         time.sleep(0.05)
         doc.write_text("Completely new content here.", encoding="utf-8")
         os.utime(doc, None)
@@ -177,7 +159,6 @@ async def test_local_corpus_client_returns_search_results(tmp_path):
         client = LocalCorpusClient(index)
         results = await client.search("local first", max_results=3)
         assert len(results) >= 1
-        # URL is loopback so it passes the offline gate
         assert "localhost" in str(results[0].url)
         assert results[0].title == "x.txt"
         assert results[0].source == "corpus"
@@ -207,14 +188,8 @@ async def test_local_corpus_scraper_blocks_remote_in_offline(tmp_path):
     db_path = tmp_path / "empty.db"
     async with CorpusIndex(db_path, embeddings=fake) as index:
         scraper = LocalCorpusScraper(index, offline=True)
-        # Non-corpus URL → blocked
         page = await scraper.fetch("https://example.com/")
         assert page is None
-
-
-# ──────────────────────────────────────────────────────────────────────
-# Pipeline offline-mode enforcement
-# ──────────────────────────────────────────────────────────────────────
 
 
 def test_pipeline_offline_raises_when_llm_endpoint_is_remote():

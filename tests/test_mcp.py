@@ -20,7 +20,6 @@ def test_research_tool_has_correct_schema():
     assert schema["type"] == "object"
     assert "question" in schema["properties"]
     assert "question" in schema["required"]
-    # Optional fields exposed
     assert "allow_domains" in schema["properties"]
     assert "block_domains" in schema["properties"]
     assert "max_pages" in schema["properties"]
@@ -54,7 +53,6 @@ async def test_research_tool_callable_via_in_memory_mcp():
         listing = await session.list_tools()
         tools = {t.name for t in listing.tools}
         assert "research" in tools
-        # The tool's input schema must round-trip cleanly
         research = next(t for t in listing.tools if t.name == "research")
         assert research.inputSchema is not None
         assert "question" in research.inputSchema.get("properties", {})

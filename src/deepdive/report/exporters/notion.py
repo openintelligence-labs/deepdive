@@ -3,7 +3,7 @@
 Notion accepts pasted Markdown and converts it to its block model. Some
 quirks vs. standard Markdown:
   - Notion treats blockquote (``>``) as callouts when they start with an emoji
-  - Headings deeper than ## are demoted in many views; we cap at ##
+  - Headings deeper than ## are demoted in many views, so they are capped at ##
   - Inline code with backticks works
   - Links work; URLs without [text](url) wrapping become bare-URL embeds
 

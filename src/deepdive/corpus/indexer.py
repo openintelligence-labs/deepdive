@@ -42,8 +42,8 @@ class IndexHit:
 def extract_text(path: Path) -> str:
     """Extract plain text from PDF / Markdown / HTML / plain text.
 
-    Returns an empty string for unrecognized formats. Best-effort — we don't
-    try to preserve formatting; the goal is searchable text.
+    Returns an empty string for unrecognized formats. Formatting is not
+    preserved; the goal is searchable text.
     """
     suffix = path.suffix.lower()
     if suffix == ".pdf":
@@ -134,12 +134,11 @@ class CorpusIndex:
         return conn
 
     async def _ensure_vec_table(self, dim: int) -> None:
-        """Create the vec0 virtual table once we know the embedder's dimension."""
+        """Create the vec0 virtual table once the embedder dimension is known."""
         if self._dim is not None:
             return
-        # Defense in depth: ``dim`` comes from the embedder output and is always
-        # an int in practice, but f-stringing into SQL is fragile — coerce
-        # explicitly so any non-int slipping in raises here, not later.
+        # ``dim`` is f-stringed into SQL below, so coerce explicitly: a non-int
+        # must raise here rather than reach the statement.
         safe_dim = int(dim)
         if safe_dim <= 0:
             raise ValueError(f"embedding dimension must be positive, got {dim!r}")
@@ -166,8 +165,8 @@ class CorpusIndex:
         if row is not None and row[1] >= mtime:
             return 0  # up-to-date
         if row is not None:
-            # vec_chunks is a virtual table — FK cascade doesn't apply, so
-            # we have to clean it up explicitly before dropping the chunks rows.
+            # vec_chunks is a virtual table, so FK cascade does not apply; it
+            # must be cleaned explicitly before the chunks rows are dropped.
             old_chunk_ids = [
                 r[0]
                 for r in self.conn.execute(

@@ -132,7 +132,6 @@ class _RecordingProvider(BaseLLMProvider):
         max_tokens: int | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[str]:
-        # Stream-only path is not used by the pipeline today, but pass through.
         async for chunk in self._inner.stream(messages, model, temperature, max_tokens, **kwargs):
             yield chunk
 
@@ -146,8 +145,8 @@ class _RecordingProvider(BaseLLMProvider):
         tools: list[ToolSpec] | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamEvent]:
-        # Buffer the full stream, then record it as a single complete() result so
-        # replay is symmetric with non-streaming calls.
+        # Buffered and recorded as a single complete() result so replay is
+        # symmetric with non-streaming calls.
         from actants.llm.base import (
             FinishDelta,
             TextDelta,
@@ -225,10 +224,9 @@ class RecordingScraper:
         return page
 
 
-# Re-export the message-key helper so the replayer can use it consistently.
+# Re-exported so the replayer keys messages identically.
 key_messages = _key_messages
 
 
-# Make sure pydantic models that we serialize round-trip cleanly. (No-op import
-# to surface any model-load errors at module import time rather than mid-research.)
+# No-op reference: surfaces model-load errors at import time, not mid-research.
 _ = (BaseModel, CompletionResult, ScrapedPage, SearchResult)

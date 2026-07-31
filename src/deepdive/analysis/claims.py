@@ -57,9 +57,8 @@ class ClaimExtractor:
             grounded = await self._extract_grounded(page)
             if grounded:
                 return grounded
-            # Fall through to legacy path if grounded extraction returned nothing
-            # — better to hand a user ungrounded claims that the validator can
-            # later flag than to drop the page silently.
+            # Ungrounded claims the validator can flag later beat dropping the
+            # page silently, so fall through rather than returning empty.
             log.info("grounded_extract_empty_falling_back", url=str(page.url))
         return await self._extract_legacy(page)
 
@@ -83,13 +82,11 @@ class ClaimExtractor:
             )
             grounded = ground_claim(
                 page.text,
-                # Provisional confidence; adjusted below based on whether the
-                # excerpt actually grounded against the source body.
+                # Provisional; raised below if the excerpt actually grounds.
                 Claim(text=gc.text, citations=[citation], confidence=0.6),
             )
-            # Grounded claims are higher-confidence than ungrounded ones — that's
-            # the whole point of grounding. cross_reference() also nudges by
-            # +0.1 per duplicate source, so we leave headroom for that.
+            # Capped at 0.8: cross_reference() adds +0.1 per duplicate source,
+            # so this leaves headroom before hitting 1.0.
             if grounded.grounded:
                 grounded.confidence = 0.8
             out.append(grounded)
@@ -106,10 +103,9 @@ class ClaimExtractor:
             schema_failed = True
             log.info("claim_extract_schema_failed", url=str(page.url), error=str(exc))
 
-        # Weaker local models (llama2, tinyllama) often ignore JSON schema
-        # instructions and either raise on validation or return an empty list
-        # while emitting a numbered list in prose. Fall back to line parsing
-        # whenever the structured path produced nothing.
+        # Weaker local models (llama2, tinyllama) ignore JSON schema instructions
+        # and emit a numbered list in prose instead, either raising on validation
+        # or returning an empty list. Line parsing recovers those.
         if not raw:
             if not schema_failed:
                 log.info("claim_extract_empty_using_fallback", url=str(page.url))

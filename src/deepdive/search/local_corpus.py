@@ -62,7 +62,6 @@ class LocalCorpusScraper:
 
     async def fetch(self, url: str) -> ScrapedPage | None:
         if "/corpus/" in url and "localhost" in url:
-            # Re-parse to find the chunk by its source_path + offset.
             return await self._fetch_corpus(url)
         if self.offline:
             return None
@@ -83,7 +82,6 @@ class LocalCorpusScraper:
         if parsed.fragment.startswith("offset="):
             with contextlib.suppress(ValueError):
                 offset = int(parsed.fragment.split("=", 1)[1])
-        # Look the chunk up directly so we get exactly the indexed text.
         cur = self.index.conn.execute(
             "SELECT c.text FROM chunks c "
             "JOIN documents d ON d.doc_id = c.doc_id "

@@ -51,8 +51,7 @@ def _make_search_client(config: DeepDiveConfig):
         from deepdive.corpus.indexer import CorpusIndex
         from deepdive.search.local_corpus import LocalCorpusClient
 
-        # Note: caller is responsible for the index lifecycle in tests; here we
-        # create a long-lived index that stays open for the pipeline's life.
+        # Long-lived index, open for the pipeline's life. Tests manage their own.
         index = CorpusIndex(config.corpus_path)
         index._conn = index._open()  # eager open
         return LocalCorpusClient(index)
@@ -83,12 +82,11 @@ class ResearchPipeline:
         self.llm = llm or LLM(model=self.config.llm_model)
         self.search_client = search_client or _make_search_client(self.config)
         self.scraper = scraper or Scraper(timeout=self.config.scrape_timeout_seconds)
-        # Per-run override beats config; default falls back to config.
+        # Per-run override beats config.
         self.ground = ground if ground is not None else self.config.ground_citations
 
-        # Corpus scraper: when search_backend is "corpus", URLs returned have
-        # the form http://localhost/corpus/... — route those to the corpus
-        # store, and delegate everything else to the web scraper.
+        # Corpus search returns http://localhost/corpus/... URLs; route those to
+        # the corpus store and delegate everything else to the web scraper.
         if self.config.search_backend == "corpus" and self.config.corpus_path:
             from deepdive.corpus.indexer import CorpusIndex
             from deepdive.search.local_corpus import LocalCorpusScraper
@@ -101,10 +99,8 @@ class ResearchPipeline:
                 inner_index, inner=self.scraper, offline=self.config.offline
             )
 
-        # Offline mode: enforce that the LLM endpoint is loopback at construction
-        # time so we fail fast rather than mid-run. Scraper-side enforcement is
-        # wired below so non-loopback fetches are dropped (unless we already
-        # wrapped with a corpus scraper above, which enforces offline itself).
+        # Check the LLM endpoint at construction time so offline runs fail fast
+        # rather than mid-run. A corpus scraper already enforces offline itself.
         if self.config.offline:
             assert_loopback(self.config.llm_base_url, what="LLM endpoint")
             from deepdive.search.local_corpus import LocalCorpusScraper
@@ -112,19 +108,17 @@ class ResearchPipeline:
             if not isinstance(self.scraper, LocalCorpusScraper):
                 self.scraper = _OfflineScraper(self.scraper)
 
-        # Optional source-restriction filter wraps the search backend.
         # Applied before recording so the trace captures only the filtered set.
         if source_filter is not None:
             self.search_client = FilteringSearch(self.search_client, source_filter)
 
-        # Optional trace recording. Wraps llm/search/scraper so every external
-        # call is appended to the trace, enabling byte-identical offline replay.
+        # Wraps llm/search/scraper so every external call lands in the trace,
+        # enabling byte-identical offline replay.
         self._recorder: TraceRecorder | None = None
         if trace_path is not None:
             self._recorder = TraceRecorder(trace_path)
-            # Capture config fields that affect prompt-building so a replay can
-            # reconstruct the same prompts. Without this, a replay run with a
-            # different default queries_per_question would generate a different
+            # Prompt-affecting config must be replayable: a replay run with a
+            # different default queries_per_question would build a different
             # prompt and miss the recorded llm_call key.
             self._recorder.record_event(
                 "config",
@@ -209,8 +203,7 @@ class ResearchPipeline:
         all_claims: list[Claim] = []
         for page in pages:
             # Per-page isolation: a timeout or LLM error on one page must not
-            # abort the entire research run. Surface the error as an event and
-            # continue. Without this, a single slow source kills 30 minutes of work.
+            # abort the whole run. Surface it as an event and continue.
             try:
                 claims = await extractor.extract(page)
             except Exception as exc:

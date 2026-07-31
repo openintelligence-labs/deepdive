@@ -46,11 +46,6 @@ class ScriptedProvider(BaseLLMProvider):
         return True
 
 
-# ──────────────────────────────────────────────────────────────────────
-# find_excerpt_offsets
-# ──────────────────────────────────────────────────────────────────────
-
-
 def test_find_excerpt_exact_match():
     body = "The quick brown fox jumps over the lazy dog."
     offsets = find_excerpt_offsets(body, "brown fox jumps")
@@ -105,11 +100,6 @@ def test_find_excerpt_case_insensitive_fallback():
     assert "apollo 11" in body[start:end].lower()
 
 
-# ──────────────────────────────────────────────────────────────────────
-# ground_citation
-# ──────────────────────────────────────────────────────────────────────
-
-
 def test_ground_citation_marks_grounded_when_excerpt_found():
     body = "Python was created by Guido van Rossum in 1991."
     citation = Citation(
@@ -138,11 +128,6 @@ def test_ground_citation_with_no_excerpt_is_ungrounded():
     citation = Citation(url="https://example.com/", title="t")  # no excerpt
     grounded = ground_citation("any body text", citation)
     assert grounded.grounded is False
-
-
-# ──────────────────────────────────────────────────────────────────────
-# filter_grounded
-# ──────────────────────────────────────────────────────────────────────
 
 
 def test_filter_grounded_drops_ungrounded_by_default():
@@ -182,11 +167,6 @@ def test_claim_grounded_property_reflects_any_citation():
     assert c.grounded is True
 
 
-# ──────────────────────────────────────────────────────────────────────
-# ClaimExtractor with grounding (the integration)
-# ──────────────────────────────────────────────────────────────────────
-
-
 @pytest.mark.asyncio
 async def test_grounded_extractor_returns_grounded_claims_when_excerpts_match():
     body = (
@@ -210,7 +190,6 @@ async def test_grounded_extractor_returns_grounded_claims_when_excerpts_match():
     claims = await extractor.extract(page)
     assert len(claims) == 2
     assert all(c.grounded for c in claims)
-    # Both citations have offsets pointing into the body
     for claim in claims:
         cit = claim.citations[0]
         assert cit.offset_start is not None
@@ -246,9 +225,8 @@ async def test_grounded_extractor_marks_invented_excerpts_ungrounded():
 async def test_grounded_extractor_falls_through_to_legacy_when_grounded_fails():
     """If the LLM can't return the grounding schema at all, fall back to legacy
     extraction so the page isn't dropped silently."""
-    # First call: invalid JSON for grounding schema (caught by extract retry).
-    # extract() retries once, so two invalid grounding responses are consumed.
-    # Then legacy: extract() retries again (1 schema attempt), then complete().
+    # extract() retries once, so the grounding path consumes two bad responses
+    # before the legacy path gets its schema attempt.
     bad_grounding = "totally not json"
     legacy_json = '{"claims": ["Fact A", "Fact B"]}'
     provider = ScriptedProvider([bad_grounding, bad_grounding, legacy_json])
@@ -258,6 +236,5 @@ async def test_grounded_extractor_falls_through_to_legacy_when_grounded_fails():
     )
     page = ScrapedPage(url="https://example.com/", title="t", text="some body")
     claims = await extractor.extract(page)
-    # Legacy claims have no grounding — should still return them
     assert len(claims) == 2
     assert claims[0].text == "Fact A"

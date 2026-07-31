@@ -32,7 +32,6 @@ def to_obsidian(report: ResearchReport) -> str:
     """Render ``report`` as Obsidian-flavored Markdown."""
     lines: list[str] = []
 
-    # YAML frontmatter — Obsidian indexes these.
     lines.append("---")
     lines.append(f"title: {report.question}")
     lines.append(f"created: {report.generated_at.strftime('%Y-%m-%d')}")

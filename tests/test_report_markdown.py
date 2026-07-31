@@ -98,11 +98,8 @@ def test_markdown_evidence_section_lists_grounding_status():
     md = report_to_markdown(_grounded_report())
     assert "## Evidence" in md
     assert "1/2 claims are span-grounded" in md
-    # Grounded claim shows ✓
     assert "[✓]" in md
-    # Ungrounded claim shows ✗
     assert "[✗]" in md
-    # Excerpts surface as blockquotes
     assert "> example servers" in md
     assert "> invented quote" in md
 
@@ -141,5 +138,4 @@ def test_markdown_truncates_long_excerpts():
     md = report_to_markdown(report)
     # Truncated to ~240 chars + ellipsis, not the full 500
     assert "…" in md
-    # Original full excerpt should NOT appear in full
     assert long_excerpt not in md

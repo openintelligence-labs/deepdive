@@ -70,7 +70,7 @@ class FilteringSearch:
     """URLs the filter dropped on the most recent search; useful for audit/debug."""
 
     async def search(self, query: str, max_results: int) -> list[SearchResult]:
-        # Pull more than we need so filtering doesn't starve the result set.
+        # Oversample so domain filtering doesn't starve the result set.
         fetch_n = max(max_results * self.oversample, max_results + 10)
         raw = await self.inner.search(query, max_results=fetch_n)
         kept: list[SearchResult] = []

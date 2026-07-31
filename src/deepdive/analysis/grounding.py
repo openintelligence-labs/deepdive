@@ -91,22 +91,19 @@ def find_excerpt_offsets(body: str, excerpt: str) -> tuple[int, int] | None:
     if not excerpt or not body:
         return None
 
-    # Fast path: exact substring match.
     idx = body.find(excerpt)
     if idx >= 0:
         return (idx, idx + len(excerpt))
 
-    # Fallback: whitespace + Unicode + case normalized. LLMs sometimes emit
-    # excerpts with different capitalization than the source (e.g. title-cased
-    # "The Moon" vs body "the moon" after lowercasing in HTML rendering).
-    # Casefolding is correct for cross-locale matching (handles Turkish ß etc.).
+    # LLMs re-case excerpts relative to the source (title-cased "The Moon" vs
+    # body "the moon"), so retry against a whitespace/Unicode/case-normalized
+    # body. casefold() rather than lower() to handle German ß -> ss.
     norm_excerpt = _normalize_for_match(excerpt).casefold()
     if not norm_excerpt:
         return None
 
-    # Build a "normalized body" + a mapping from normalized index → original index.
-    # Each char in the original body either contributes one char (after collapsing)
-    # to the normalized body, or is squashed (whitespace runs).
+    # norm_to_orig maps normalized index → original index, so a match in the
+    # normalized body can be reported in the caller's coordinates.
     norm_chars: list[str] = []
     norm_to_orig: list[int] = []
     in_ws = False
@@ -123,7 +120,7 @@ def find_excerpt_offsets(body: str, excerpt: str) -> tuple[int, int] | None:
                 norm_to_orig.append(i)
                 in_ws = False
     norm_body = "".join(norm_chars).strip()
-    # Recompute offsets after strip — track leading-strip count.
+    # strip() above shifted the mapping; drop the leading entries to match.
     leading = len("".join(norm_chars)) - len("".join(norm_chars).lstrip())
     if leading:
         norm_to_orig = norm_to_orig[leading:]

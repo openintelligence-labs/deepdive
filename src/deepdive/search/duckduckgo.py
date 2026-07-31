@@ -20,9 +20,8 @@ class DuckDuckGoClient:
     """Fallback search when SearxNG isn't available."""
 
     async def search(self, query: str, *, max_results: int = 5) -> list[SearchResult]:
-        # DDGS is a synchronous library. Offload to a thread so we don't block
-        # the event loop — without this, every concurrent search serializes
-        # behind whichever one is currently in-flight.
+        # DDGS is synchronous; offloading to a thread keeps the event loop free.
+        # Without this every concurrent search serializes behind the in-flight one.
         try:
             raw = await asyncio.to_thread(_ddg_text_blocking, query, max_results)
         except Exception as exc:

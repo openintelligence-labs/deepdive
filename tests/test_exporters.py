@@ -49,11 +49,6 @@ def _fake_report() -> ResearchReport:
     )
 
 
-# ──────────────────────────────────────────────────────────────────────
-# Registry
-# ──────────────────────────────────────────────────────────────────────
-
-
 def test_six_formats_are_registered():
     assert set(available_formats()) == {"markdown", "latex", "bibtex", "json", "obsidian", "notion"}
 
@@ -69,11 +64,6 @@ def test_every_exporter_returns_str():
         out = EXPORTERS[name](r)
         assert isinstance(out, str)
         assert len(out) > 0
-
-
-# ──────────────────────────────────────────────────────────────────────
-# LaTeX
-# ──────────────────────────────────────────────────────────────────────
 
 
 def test_latex_escapes_special_characters():
@@ -95,27 +85,19 @@ def test_latex_output_is_complete_document():
 
 def test_latex_escapes_body_content():
     out = to_latex(_fake_report())
-    # The original body has %, _, $, & — all should be escaped
     assert r"\%" in out
     assert r"\_" in out
     assert r"\$" in out
     assert r"\&" in out
-    # And NOT raw
     assert "50%" not in out
     assert "_underscores_" not in out
 
 
 def test_latex_includes_cite_calls_for_sections_with_claims():
     out = to_latex(_fake_report())
-    # The fake report has 2 cited sources; both keys should appear
     keys = {cite_key(s) for s in _fake_report().sources}
     for k in keys:
         assert r"\cite{" + k + "}" in out
-
-
-# ──────────────────────────────────────────────────────────────────────
-# BibTeX
-# ──────────────────────────────────────────────────────────────────────
 
 
 def test_bibtex_emits_one_entry_per_unique_source():
@@ -164,25 +146,14 @@ def test_cite_key_differs_for_different_urls():
     assert cite_key(c1) != cite_key(c2)
 
 
-# ──────────────────────────────────────────────────────────────────────
-# JSON
-# ──────────────────────────────────────────────────────────────────────
-
-
 def test_json_roundtrips_through_pydantic():
     out = EXPORTERS["json"](_fake_report())
     parsed = _json.loads(out)
     restored = ResearchReport.model_validate(parsed)
     assert restored.question == "Test question?"
     assert len(restored.sections) == 2
-    # Span-grounding preserved
     assert restored.sections[0].claims[0].citations[0].grounded is True
     assert restored.sections[0].claims[0].citations[0].excerpt == "An example excerpt."
-
-
-# ──────────────────────────────────────────────────────────────────────
-# Obsidian
-# ──────────────────────────────────────────────────────────────────────
 
 
 def test_obsidian_includes_yaml_frontmatter():
@@ -194,7 +165,6 @@ def test_obsidian_includes_yaml_frontmatter():
 
 def test_obsidian_uses_wikilinks_for_sources():
     out = EXPORTERS["obsidian"](_fake_report())
-    # Each source becomes a [[wikilink]] anchor
     assert "[[Example arxiv paper]]" in out
     assert "[[Nature article]]" in out
 
@@ -204,14 +174,8 @@ def test_obsidian_reports_grounding_count():
     assert "grounded: 2/2" in out
 
 
-# ──────────────────────────────────────────────────────────────────────
-# Notion
-# ──────────────────────────────────────────────────────────────────────
-
-
 def test_notion_uses_callout_for_summary():
     out = EXPORTERS["notion"](_fake_report())
-    # Notion treats `> emoji ...` as a callout block
     assert "> 📝" in out
 
 

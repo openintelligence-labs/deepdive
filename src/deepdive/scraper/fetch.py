@@ -81,7 +81,7 @@ class Scraper:
         self.allow_private_hosts = allow_private_hosts
         self._sem = asyncio.Semaphore(max_concurrency)
         self._external = client is not None
-        # follow_redirects=False so we can validate each hop ourselves.
+        # follow_redirects=False so each hop is validated against the SSRF guard.
         self._client = client or httpx.AsyncClient(
             timeout=timeout,
             follow_redirects=False,
@@ -122,7 +122,6 @@ class Scraper:
                 next_url = r.headers.get("location")
                 if not next_url:
                     return r
-                # Resolve relative redirects against the current URL.
                 next_url = str(httpx.URL(current).join(next_url))
                 if not self.allow_private_hosts and not _is_safe_url(next_url):
                     log.debug("redirect_blocked_private_host", url=next_url)
@@ -142,12 +141,10 @@ class Scraper:
         tree = HTMLParser(html)
         title_node = tree.css_first("title")
         title = title_node.text(strip=True) if title_node else ""
-        # Strip script/style/nav noise
         for selector in ("script", "style", "nav", "footer", "header", "aside"):
             for node in tree.css(selector):
                 node.decompose()
         body = tree.body
         text = body.text(separator=" ", strip=True) if body else ""
-        # Collapse whitespace
         text = " ".join(text.split())
         return title, text

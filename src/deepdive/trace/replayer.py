@@ -38,9 +38,9 @@ class _TraceIndex:
 
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
-        # llm_call: a queue per key — handles multiple identical calls in order
+        # One queue per key: identical calls replay in order. Deduping is not
+        # safe, since the same query may run twice intentionally.
         self.llm_calls: dict[str, list[CompletionResult]] = {}
-        # search/scrape: same — dedup not safe (same query may run twice intentionally)
         self.searches: dict[str, list[list[SearchResult]]] = {}
         self.scrapes: dict[str, list[ScrapedPage | None]] = {}
         self.events: list[dict[str, Any]] = []

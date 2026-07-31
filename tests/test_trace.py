@@ -71,11 +71,6 @@ class FakeScraper:
         return self.pages.get(url)
 
 
-# ──────────────────────────────────────────────────────────────────────
-# TraceRecorder primitives
-# ──────────────────────────────────────────────────────────────────────
-
-
 def test_recorder_writes_jsonl(tmp_path):
     recorder = TraceRecorder(tmp_path / "x.trace.jsonl")
     result = CompletionResult(
@@ -143,11 +138,6 @@ async def test_recording_scraper_records_page(tmp_path):
     assert scrape_lines[0]["page"]["text"] == "body"
 
 
-# ──────────────────────────────────────────────────────────────────────
-# Replay roundtrip
-# ──────────────────────────────────────────────────────────────────────
-
-
 @pytest.mark.asyncio
 async def test_replay_provider_returns_recorded_results(tmp_path):
     recorder = TraceRecorder(tmp_path / "round.trace.jsonl")
@@ -195,21 +185,13 @@ async def test_replay_search_and_scraper(tmp_path):
     assert out_page is not None and out_page.text == "body"
 
 
-# ──────────────────────────────────────────────────────────────────────
-# Full pipeline → trace → replay → identical Markdown
-# ──────────────────────────────────────────────────────────────────────
-
-
 @pytest.mark.asyncio
 async def test_pipeline_record_then_replay_identical_markdown(tmp_path):
     """End-to-end: run a pipeline with recording, replay it, assert the
     rendered Markdown is byte-identical."""
     responses = [
-        # query_gen
         '{"queries": ["q1"]}',
-        # claim extraction (legacy, ground=False)
         '{"claims": ["Fact A."]}',
-        # report builder: summary + 3 sections
         "summary",
         "background",
         "findings",
@@ -220,7 +202,6 @@ async def test_pipeline_record_then_replay_identical_markdown(tmp_path):
 
     trace_path = tmp_path / "run.trace.jsonl"
 
-    # Recording run
     pipeline = ResearchPipeline(
         config=DeepDiveConfig(queries_per_question=1, results_per_query=1),
         llm=LLM(provider=ScriptedProvider(responses), model="test"),

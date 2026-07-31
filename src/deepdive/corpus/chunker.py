@@ -17,8 +17,8 @@ class Chunk:
     offset_end: int
 
 
-# Sentence boundary heuristic — good enough for prose, not perfect for code.
-# We cut at sentence-ending punctuation followed by whitespace + capital letter.
+# Sentence-ending punctuation followed by whitespace + a capital. A heuristic:
+# good enough for prose, imprecise on code.
 _SENT_RE = re.compile(r"(?<=[.!?])\s+(?=[A-Z\"'(\[])")
 
 
@@ -88,7 +88,6 @@ def chunk_text(
             cur_start = start
             cur_end = sent_end
             continue
-        # Would this sentence overflow the chunk?
         prospective = sent_end - cur_start
         if prospective > max_chars:
             flush()

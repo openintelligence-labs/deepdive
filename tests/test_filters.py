@@ -10,10 +10,6 @@ from deepdive.search.filters import (
     SourceFilter,
 )
 
-# ──────────────────────────────────────────────────────────────────────
-# Hostname matching
-# ──────────────────────────────────────────────────────────────────────
-
 
 @pytest.mark.parametrize(
     "entry,host,expected",
@@ -57,11 +53,6 @@ def test_block_only_drops_listed_hosts():
     assert f.keep("https://anything-else.com/") is True
 
 
-# ──────────────────────────────────────────────────────────────────────
-# FilteringSearch wrapper
-# ──────────────────────────────────────────────────────────────────────
-
-
 class FakeSearch:
     def __init__(self, results: list[SearchResult]) -> None:
         self.results = results
@@ -103,9 +94,7 @@ async def test_filtering_search_oversamples_to_compensate():
     fs = FilteringSearch(inner, f, oversample=5)
     out = await fs.search("q", max_results=3)
     assert len(out) == 3
-    # Wrapper requested at least max_results * oversample
     assert inner.last_max >= 15
-    # All kept results are arxiv
     assert all("arxiv.org" in str(r.url) for r in out)
 
 

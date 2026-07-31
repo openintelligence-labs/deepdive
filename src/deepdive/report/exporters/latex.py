@@ -65,7 +65,6 @@ def to_latex(report: ResearchReport) -> str:
         lines.append(latex_escape(report.summary.strip()))
         lines.append(r"\end{abstract}")
 
-    # Map URL → citation key for inline \cite{}s.
     url_to_key: dict[str, str] = {}
     for src in report.sources:
         url_to_key[str(src.url)] = cite_key(src)
@@ -73,14 +72,14 @@ def to_latex(report: ResearchReport) -> str:
     for section in report.sections:
         lines.append(r"\section{" + latex_escape(section.heading) + "}")
         body = latex_escape(section.body.strip())
-        # Re-inject \cite{} calls where the original markdown had [N] markers.
-        # We have the section's claims; resolve their citation URLs to keys.
+        # Re-inject \cite{} calls where the original markdown had [N] markers,
+        # resolving each claim's citation URLs to keys.
         for claim in section.claims:
             for cit in claim.citations:
                 key = url_to_key.get(str(cit.url))
                 if key is not None:
-                    # Append a \cite at end of body (best-effort — full inline
-                    # placement requires LLM-aware rewriting).
+                    # Appended at end of body; true inline placement would need
+                    # LLM-aware rewriting of the sentence.
                     body = body.rstrip()
                     if not body.endswith(r"\cite{" + key + "}"):
                         body += r" \cite{" + key + "}"
