@@ -32,8 +32,8 @@ class ClaimExtractor:
     """Extract verifiable claims from a scraped page.
 
     By default uses span-grounded extraction: every claim must include a
-    verbatim excerpt from the source, validated by substring match. This is
-    the citation-honesty wedge — see docs/DIFFERENTIATION.md.
+    verbatim excerpt from the source, validated by substring match, so every
+    claim in a report can be traced back to the text that produced it.
 
     Set ``ground=False`` to fall back to the v0.2 plain extraction (claims
     without source excerpts). Backward-compatible for legacy callers and tests.
