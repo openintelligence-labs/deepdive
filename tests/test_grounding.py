@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
-
 import pytest
 from actants.llm.base import (
     BaseLLMProvider,
-    ChatMessage,
     CompletionResult,
     TokenUsage,
 )
@@ -36,11 +33,6 @@ class ScriptedProvider(BaseLLMProvider):
             provider=self.name,
             usage=TokenUsage(prompt_tokens=1, completion_tokens=1, total_tokens=2),
         )
-
-    async def stream(
-        self, messages: list[ChatMessage], model, temperature=0.7, max_tokens=None, **kwargs
-    ) -> AsyncIterator[str]:
-        yield ""
 
     async def health(self) -> bool:
         return True

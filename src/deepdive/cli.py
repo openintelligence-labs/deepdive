@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
+import uuid
 from pathlib import Path
 
 import click
@@ -31,6 +32,9 @@ async def _run_research(
     export_format: str = "markdown",
     plan_only: bool = False,
     force: bool = False,
+    checkpoint_db: Path | None = None,
+    thread_id: str | None = None,
+    resume: bool = False,
 ) -> None:
     # Guard against losing a long-running report run to an accidental clobber.
     if output_path is not None and output_path.exists() and not force:
@@ -39,11 +43,24 @@ async def _run_research(
             "[dim]Pass --force to overwrite, or pick a different -o path.[/]"
         )
         sys.exit(2)
-    pipeline = ResearchPipeline(config=config, trace_path=trace_path, source_filter=source_filter)
+    checkpointer = None
+    if checkpoint_db is not None:
+        from actants import SqliteCheckpointer
+
+        checkpointer = SqliteCheckpointer(checkpoint_db)
+
+    pipeline = ResearchPipeline(
+        config=config,
+        trace_path=trace_path,
+        source_filter=source_filter,
+        checkpointer=checkpointer,
+        thread_id=thread_id,
+    )
     report: ResearchReport | None = None
 
+    stream = pipeline.resume() if resume else pipeline.run(question)
     with Live(console=console, refresh_per_second=4) as live:
-        async for event in pipeline.run(question):
+        async for event in stream:
             if event.type == "start":
                 live.update(Status(f"[bold]Researching:[/] {question}"))
 
@@ -132,7 +149,7 @@ def main():
 
 
 @main.command()
-@click.argument("question")
+@click.argument("question", required=False)
 @click.option("--model", "-m", default=None, help="LLM model name (e.g. llama3.2)")
 @click.option(
     "--backend",
@@ -219,6 +236,27 @@ def main():
     default=False,
     help="Overwrite the -o output file if it already exists.",
 )
+@click.option(
+    "--checkpoint-db",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="Persist each completed stage to this SQLite file so an interrupted run "
+    "can be resumed. Defaults on when --thread or --resume is given.",
+)
+@click.option(
+    "--thread",
+    "thread_id",
+    default=None,
+    help="Name this durable run so it can be resumed later. "
+    "Generated automatically when --checkpoint-db is set without one.",
+)
+@click.option(
+    "--resume",
+    "resume_thread",
+    default=None,
+    help="Resume the interrupted run with this thread id. Completed stages are "
+    "skipped — no search, scrape, or LLM call is repeated.",
+)
 def research(
     question,
     model,
@@ -237,10 +275,19 @@ def research(
     corpus,
     plan_only,
     force,
+    checkpoint_db,
+    thread_id,
+    resume_thread,
 ):
     """Research a question. Searches the web, analyzes sources, writes a cited report.
 
     Example: deepdive research "What caused the 2008 financial crisis?" -o report.md
+
+    Durable runs survive a crash. Start one with a thread name, and resume it by
+    id if it dies — every stage that already finished is skipped::
+
+        deepdive research "..." --thread my-run --checkpoint-db runs.db
+        deepdive research --resume my-run --checkpoint-db runs.db
     """
     setup_logging(level="debug" if debug else "info", format=log_format)
     config = DeepDiveConfig()
@@ -264,10 +311,31 @@ def research(
 
     source_filter = _build_source_filter(allow_domains, block_domains)
 
+    resuming = resume_thread is not None
+    if not resuming and not question:
+        console.print("[red]Give a question to research, or --resume <thread-id>.[/]")
+        sys.exit(2)
+    if resuming and question:
+        console.print(
+            "[red]--resume takes the run's question from its checkpoint; "
+            "drop the question argument.[/]"
+        )
+        sys.exit(2)
+
+    thread = resume_thread or thread_id
+    # A durable run needs somewhere to persist to; default the file rather than
+    # making the user pass two flags to get one feature.
+    if checkpoint_db is None and (thread or resuming):
+        checkpoint_db = Path("deepdive-runs.db")
+    if checkpoint_db is not None and thread is None:
+        thread = uuid.uuid4().hex[:12]
+    if checkpoint_db is not None and not resuming:
+        console.print(f"[dim]Durable run — resume with:[/] --resume {thread}")
+
     try:
         asyncio.run(
             _run_research(
-                question,
+                question or "",
                 config,
                 output,
                 trace_path,
@@ -275,6 +343,9 @@ def research(
                 export_format,
                 plan_only,
                 force,
+                checkpoint_db,
+                thread,
+                resuming,
             )
         )
     except KeyboardInterrupt:
