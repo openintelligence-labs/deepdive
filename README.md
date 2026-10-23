@@ -44,6 +44,26 @@ deepdive trace verify report.md.trace.jsonl  # re-validates every excerpt
 deepdive inspect report.md.trace.jsonl       # event counts
 ```
 
+### Durable runs (resume after a crash)
+
+A long research run is expensive in wall-clock and tokens. Name a run with `--thread` and
+each completed stage — query generation, search, scrape, claim extraction, report — is
+persisted to SQLite. If the process dies, resume it by id: every finished stage is skipped
+and nothing already paid for is re-run.
+
+```bash
+deepdive research "..." --thread my-run --checkpoint-db runs.db   # durable
+deepdive research --resume my-run --checkpoint-db runs.db         # picks up where it died
+```
+
+Measured on a corpus run killed with `os._exit` after claim extraction: the resuming
+process made 0 searches, 0 page fetches, and 4 LLM calls — the report stage only.
+
+Durability is opt-in and independent of trace/replay. The checkpointer stores *stage
+results* so work is not repeated; the trace records *external calls* for byte-identical
+replay. A resumed process writes a trace of only the portion it ran, so replay the
+original trace, not the resumed one.
+
 ### Source restriction
 
 Restrict search to your own allow/block lists of hostnames. Subdomains match; wildcards like `*.gov` are supported.

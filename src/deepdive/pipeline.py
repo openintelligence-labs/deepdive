@@ -77,6 +77,9 @@ class ResearchPipeline:
         ground: bool | None = None,
         trace_path: str | Path | None = None,
         source_filter: SourceFilter | None = None,
+        checkpointer: object | None = None,
+        thread_id: str | None = None,
+        approve_scrape: bool = False,
     ) -> None:
         self.config = config or DeepDiveConfig()
         self.llm = llm or LLM(model=self.config.llm_model)
@@ -135,17 +138,105 @@ class ResearchPipeline:
             self.search_client = RecordingSearch(self.search_client, self._recorder)
             self.scraper = RecordingScraper(self.scraper, self._recorder)
 
+        # Durability is strictly opt-in: without a checkpointer the pipeline runs
+        # the original linear generator, so the default path keeps its exact
+        # event stream and adds no graph machinery.
+        self.checkpointer = checkpointer
+        self.thread_id = thread_id
+        self._approve_scrape = approve_scrape
+        self._graph = None
+        if checkpointer is not None:
+            from deepdive.durable import build_graph
+
+            self._graph = build_graph(
+                self,
+                checkpointer=checkpointer,
+                interrupt_before_scrape=approve_scrape,
+            )
+
     async def run(self, question: str) -> AsyncIterator[ResearchEvent]:
         """Run the full pipeline. If trace recording is on, every event is
         mirrored to the recorder and the trace file is finalized on exit."""
+        source = (
+            self._run_durable(question) if self._graph is not None else self._run_inner(question)
+        )
         try:
-            async for event in self._run_inner(question):
+            async for event in source:
                 if self._recorder is not None:
                     self._recorder.record_event(event.type, event.data)
                 yield event
         finally:
             if self._recorder is not None:
                 self._recorder.close()
+
+    async def resume(self) -> AsyncIterator[ResearchEvent]:
+        """Continue an interrupted durable run, yielding the same event stream a
+        completed run would have produced.
+
+        Stages the checkpoint records as completed are never re-run; their events
+        are replayed from the persisted state so the caller sees one continuous
+        stream rather than a fragment starting mid-run.
+        """
+        if self._graph is None or self.thread_id is None:
+            raise ValueError(
+                "resume() needs a checkpointer and thread_id. Construct the "
+                "pipeline with ResearchPipeline(checkpointer=SqliteCheckpointer(...), "
+                "thread_id='...') using the same thread the interrupted run used."
+            )
+        try:
+            async for event in self._drive_graph(resume=True):
+                if self._recorder is not None:
+                    self._recorder.record_event(event.type, event.data)
+                yield event
+        finally:
+            if self._recorder is not None:
+                self._recorder.close()
+
+    async def _run_durable(self, question: str) -> AsyncIterator[ResearchEvent]:
+        yield ResearchEvent("start", {"question": question})
+        async for event in self._drive_graph(resume=False, question=question):
+            yield event
+
+    async def _drive_graph(
+        self, *, resume: bool, question: str | None = None
+    ) -> AsyncIterator[ResearchEvent]:
+        """Drive the compiled graph, converting node completions into events.
+
+        Events live in the graph state rather than being yielded by nodes
+        directly, because a node's return value is what gets checkpointed — so
+        this walks the state's event log and emits whatever is new since the last
+        node. That is also what makes a resumed run replay the skipped stages'
+        events instead of starting mid-stream.
+        """
+        from actants import GraphCompleted, GraphInterrupted, GraphNodeCompleted
+
+        from deepdive.durable import ResearchState
+
+        assert self._graph is not None
+        emitted = 0
+        if resume:
+            events = self._graph.resume_stream(self.thread_id, approve=True)
+        else:
+            assert question is not None
+            events = self._graph.stream(ResearchState(question=question), thread_id=self.thread_id)
+
+        async for event in events:
+            state = getattr(event, "state", None)
+            if isinstance(event, GraphNodeCompleted | GraphCompleted) and state is not None:
+                for etype, data in state.events[emitted:]:
+                    yield ResearchEvent(etype, data)  # type: ignore[arg-type]
+                emitted = len(state.events)
+            elif isinstance(event, GraphInterrupted):
+                yield ResearchEvent(
+                    "error",
+                    {
+                        "stage": "scrape",
+                        "message": (
+                            f"Paused before scraping {len(event.state.results)} sources. "
+                            f"Resume with thread_id={self.thread_id!r} to approve."
+                        ),
+                    },
+                )
 
     async def _run_inner(self, question: str) -> AsyncIterator[ResearchEvent]:
         yield ResearchEvent("start", {"question": question})
